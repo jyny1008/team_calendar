@@ -10,7 +10,7 @@ const APP_CONFIG = {
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxhkBaPBftHOvyUffjlFtvmP1seEDmfm3dIfKfyrhFJhKH36eVCj--6eyKteZCDpQjL/exec',
 
   get MOCK_MODE() {
-    return !this.APPS_SCRIPT_URL || this.APPS_SCRIPT_URL.indexOf('https://script.google.com/macros/s/AKfycbxhkBaPBftHOvyUffjlFtvmP1seEDmfm3dIfKfyrhFJhKH36eVCj--6eyKteZCDpQjL/exec') !== -1;
+    return !this.APPS_SCRIPT_URL;
   },
 
   // 주관별 기본 색상 (Nord 팔레트). 관리자 페이지에서 일정별로 재정의 가능.
