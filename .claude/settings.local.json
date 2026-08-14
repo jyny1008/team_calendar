@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1k2UZmBnmDicEBAz2YxxgDt40p140WRLkrR6F3lLW5xo/export?format=csv\" -o /private/tmp/claude-501/-Users-hanro-jyny-ai-team-calendar-web/69767af1-4971-4786-8be3-ee083895e575/scratchpad/sheet.csv -w \"HTTP_CODE:%{http_code}\\\\n\")",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

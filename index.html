@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>중등교육 캘린더</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-title">중등교육 캘린더 <span class="badge">2026</span></div>
+      <div class="header-actions no-print">
+        <a class="btn ghost" href="admin.html">관리자페이지</a>
+      </div>
+    </header>
+
+    <section class="toolbar no-print">
+      <div class="filter-group">
+        <span class="label">주관</span>
+        <label class="chip-checkbox active" id="selectAllLabel">
+          <input type="checkbox" id="selectAllToggle" checked>
+          전체
+        </label>
+        <div id="orgFilters" class="filter-group"></div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="filter-group">
+        <label class="private-toggle" id="privateLabel">
+          <input type="checkbox" id="privateToggle" style="accent-color:var(--nord15)">
+          🔒 비공개 일정
+        </label>
+      </div>
+    </section>
+
+    <div class="month-nav">
+      <button class="icon-btn no-print" id="prevMonthBtn" aria-label="이전 달">‹</button>
+      <div class="month-label" id="monthLabel">-</div>
+      <button class="icon-btn no-print" id="nextMonthBtn" aria-label="다음 달">›</button>
+      <button class="btn small no-print" id="todayBtn">오늘</button>
+    </div>
+
+    <div class="calendar">
+      <div class="weekday-row">
+        <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
+      </div>
+      <div class="day-grid" id="calendarBody"></div>
+    </div>
+  </div>
+
+  <!-- 상세 정보 모달 -->
+  <div class="modal-overlay hidden" id="detailModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="detailTitle">-</div>
+        <button class="modal-close" data-close-modal>✕</button>
+      </div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- 비공개 일정 비밀번호 모달 -->
+  <div class="modal-overlay hidden" id="passwordModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">비공개 일정 확인</div>
+        <button class="modal-close" data-close-modal>✕</button>
+      </div>
+      <form id="passwordForm">
+        <div class="field">
+          <label for="passwordInput">비밀번호</label>
+          <input type="password" id="passwordInput" inputmode="numeric" autocomplete="off" maxlength="20">
+        </div>
+        <div class="login-gate error" id="passwordError" style="padding:0;margin-top:6px;"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn primary">확인</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="loading-overlay hidden" id="loadingOverlay">불러오는 중...</div>
+  <div class="toast" id="toast"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/mock-data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/calendar.js"></script>
+</body>
+</html>
