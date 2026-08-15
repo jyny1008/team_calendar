@@ -345,8 +345,15 @@ a { color: var(--accent); }
   box-shadow: 0 1px 1px rgba(18,20,28,0.06);
 }
 .event-chip:hover { filter: brightness(1.08); transform: translateY(-1px); }
-/* 비공개 일정의 실제 배경/빗금/글자색은 APP_CONFIG.privateChipStyle()로 인라인 지정된다(색상 변경 가능). */
+/* 비공개 일정의 실제 배경/글자색은 APP_CONFIG.privateChipStyle()로 인라인 지정된다(색상 변경 가능). */
 .event-chip.private::before { content: "🔒 "; }
+
+.event-chip.holiday-chip {
+  background: var(--holiday-color) !important;
+  color: #fff !important;
+  cursor: default;
+}
+.event-chip.holiday-chip:hover { filter: none; transform: none; }
 
 .event-more {
   font-size: 11px;

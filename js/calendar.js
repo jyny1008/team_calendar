@@ -32,11 +32,13 @@
       const res = await Api.list();
       state.events = res.events;
       APP_CONFIG.applyOrgConfig(res.orgConfig);
+      APP_CONFIG.applySiteConfig(res.siteConfig);
     } catch (err) {
       toast_(err.message, true);
       state.events = [];
     }
     showLoading_(false);
+    renderSiteMeta_();
     populateOrgDatalist_();
     buildOrgFilters_();
     state.privateChecked = sessionStorage.getItem('calendar_privateUnlocked') === '1';
@@ -46,6 +48,8 @@
   }
 
   function cacheEls_() {
+    els.siteTitleText = document.getElementById('siteTitleText');
+    els.siteYearBadge = document.getElementById('siteYearBadge');
     els.monthLabel = document.getElementById('monthLabel');
     els.prevBtn = document.getElementById('prevMonthBtn');
     els.nextBtn = document.getElementById('nextMonthBtn');
@@ -384,6 +388,7 @@
 
       const list = document.createElement('div');
       list.className = 'event-list';
+      if (holidayName) list.appendChild(buildHolidayChip_(holidayName));
       const dayEvents = (eventsByDate[dateStr] || []).filter(passesFilter_);
       dayEvents.forEach((ev) => list.appendChild(buildChip_(ev)));
       cell.appendChild(list);
@@ -421,6 +426,7 @@
 
       const list = document.createElement('div');
       list.className = 'event-list week';
+      if (holidayName) list.appendChild(buildHolidayChip_(holidayName));
       (eventsByDate[dateStr] || []).filter(passesFilter_).forEach((ev) => list.appendChild(buildChip_(ev)));
       col.appendChild(list);
 
@@ -503,6 +509,13 @@
     }
     btn.addEventListener('click', () => openDetail_(ev));
     return btn;
+  }
+
+  function buildHolidayChip_(name) {
+    const div = document.createElement('div');
+    div.className = 'event-chip holiday-chip';
+    div.textContent = '🇰🇷 ' + name;
+    return div;
   }
 
   function openDetail_(ev) {
@@ -629,13 +642,21 @@
       const res = await Api.list();
       state.events = res.events;
       APP_CONFIG.applyOrgConfig(res.orgConfig);
+      APP_CONFIG.applySiteConfig(res.siteConfig);
     } catch (err) {
       toast_(err.message, true);
       return;
     }
+    renderSiteMeta_();
     populateOrgDatalist_();
     buildOrgFilters_();
     render_();
+  }
+
+  function renderSiteMeta_() {
+    els.siteTitleText.textContent = APP_CONFIG.SITE_TITLE;
+    els.siteYearBadge.textContent = APP_CONFIG.SITE_YEAR;
+    document.title = APP_CONFIG.SITE_TITLE;
   }
 
   function showLoading_(show) { els.loadingOverlay.classList.toggle('hidden', !show); }

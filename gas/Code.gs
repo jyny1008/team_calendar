@@ -26,6 +26,10 @@ const DEFAULT_ORG_COLORS = {
 };
 const DEFAULT_PRIVATE_COLOR = '#E11D48';
 
+const SITE_CONFIG_KEY = 'siteConfig';
+const DEFAULT_SITE_TITLE = '중등교육 캘린더';
+const DEFAULT_SITE_YEAR = '2026';
+
 const COL_SEQ = 1;
 const COL_START_DATE = 2;
 const COL_START_TIME = 3;
@@ -143,6 +147,29 @@ function saveOrgConfig_(cfg) {
   setConfigValue_(ORG_CONFIG_KEY, JSON.stringify(cfg));
 }
 
+// 캘린더 제목 / 연도 배지를 Config 탭에 JSON으로 저장한다.
+function getSiteConfig_() {
+  const raw = getConfigValue_(SITE_CONFIG_KEY);
+  const fallback = { title: DEFAULT_SITE_TITLE, year: DEFAULT_SITE_YEAR };
+  if (!raw) {
+    setConfigValue_(SITE_CONFIG_KEY, JSON.stringify(fallback));
+    return fallback;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      title: parsed.title || fallback.title,
+      year: parsed.year || fallback.year
+    };
+  } catch (err) {
+    return fallback;
+  }
+}
+
+function saveSiteConfig_(cfg) {
+  setConfigValue_(SITE_CONFIG_KEY, JSON.stringify(cfg));
+}
+
 const DAY_NAMES_ = ['일', '월', '화', '수', '목', '금', '토'];
 
 function formatDateWithDay_(dateStr) {
@@ -178,7 +205,7 @@ function doGet(e) {
   const action = e.parameter.action;
   try {
     if (action === 'list') {
-      return jsonOutput_({ ok: true, events: listEvents_(), orgConfig: getOrgConfig_() });
+      return jsonOutput_({ ok: true, events: listEvents_(), orgConfig: getOrgConfig_(), siteConfig: getSiteConfig_() });
     }
     return jsonOutput_({ ok: false, error: 'unknown action' });
   } catch (err) {
@@ -272,6 +299,15 @@ function doPost(e) {
         cfg.colors[name] = body.color || DEFAULT_ORG_COLORS.__default;
         saveOrgConfig_(cfg);
         return jsonOutput_({ ok: true, orgConfig: cfg });
+      }
+      case 'updateSiteConfig': {
+        if (!requireAdmin_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
+        const cfg = {
+          title: String(body.title || '').trim() || DEFAULT_SITE_TITLE,
+          year: String(body.year || '').trim() || DEFAULT_SITE_YEAR
+        };
+        saveSiteConfig_(cfg);
+        return jsonOutput_({ ok: true, siteConfig: cfg });
       }
       default:
         return jsonOutput_({ ok: false, error: 'unknown action' });

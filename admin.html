@@ -23,12 +23,30 @@
   <!-- 관리자 본문 -->
   <div class="app-shell hidden no-print" id="adminShell">
     <header class="app-header">
-      <div class="app-title">중등교육 캘린더 <span class="badge">관리자</span></div>
+      <div class="app-title"><span id="siteTitleTextAdmin">중등교육 캘린더</span> <span class="badge">관리자</span></div>
       <div class="header-actions">
         <a class="btn ghost" href="index.html">캘린더 보기</a>
         <button class="btn ghost" id="logoutBtn">로그아웃</button>
       </div>
     </header>
+
+    <section class="section-card">
+      <h2>⚙️ 캘린더 제목 설정</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="siteTitleInput">캘린더 제목</label>
+          <input type="text" id="siteTitleInput" placeholder="중등교육 캘린더">
+        </div>
+        <div class="field">
+          <label for="siteYearInput">연도 배지</label>
+          <input type="text" id="siteYearInput" placeholder="2026">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn primary" id="saveSiteConfigBtn">저장</button>
+      </div>
+      <p class="hint">제목/연도는 캘린더 화면과 관리자페이지 상단에 즉시 반영됩니다.</p>
+    </section>
 
     <section class="section-card">
       <h2>📅 대상 월 &amp; 내보내기</h2>

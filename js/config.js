@@ -6,9 +6,9 @@
  * 2) URL을 넣기 전까지는 MOCK_MODE 가 자동으로 켜져서
  *    js/mock-data.js 의 샘플 데이터로 화면을 미리 볼 수 있습니다.
  *
- * 주관 순서/색상, 비공개 일정 색상은 관리자페이지에서 변경 가능하며 서버(Config 탭)에
- * 저장됩니다. 아래 ORG_ORDER/ORG_COLORS/PRIVATE_COLOR는 서버 값이 오기 전까지 쓰이는
- * 초기값(=최초 배포 시 기본값)입니다. Api.list() 응답의 orgConfig로 applyOrgConfig()를
+ * 캘린더 제목/연도, 주관 순서/색상, 비공개 일정 색상은 관리자페이지에서 변경 가능하며
+ * 서버(Config 탭)에 저장됩니다. 아래 값들은 서버 값이 오기 전까지 쓰이는 초기값(=최초
+ * 배포 시 기본값)입니다. Api.list() 응답의 orgConfig/siteConfig로 apply*Config()를
  * 호출하면 실제 값으로 갱신됩니다.
  */
 const APP_CONFIG = {
@@ -17,6 +17,9 @@ const APP_CONFIG = {
   get MOCK_MODE() {
     return !this.APPS_SCRIPT_URL;
   },
+
+  SITE_TITLE: '중등교육 캘린더',
+  SITE_YEAR: '2026',
 
   ORG_ORDER: ['중등교육', '진로진학', '직업교육', '중등인사'],
 
@@ -45,6 +48,13 @@ const APP_CONFIG = {
     document.documentElement.style.setProperty('--private-color', this.PRIVATE_COLOR);
   },
 
+  // Api.list()가 돌려주는 siteConfig({title, year})를 반영한다.
+  applySiteConfig(cfg) {
+    if (!cfg) return;
+    if (cfg.title) this.SITE_TITLE = cfg.title;
+    if (cfg.year) this.SITE_YEAR = cfg.year;
+  },
+
   hexToRgba(hex, alpha) {
     const h = String(hex || '').replace('#', '');
     const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
@@ -53,11 +63,9 @@ const APP_CONFIG = {
     return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
   },
 
-  // 비공개 일정 칩에 쓰는 가는 빗금 스타일(자물쇠 아이콘은 별도로 표시).
+  // 비공개 일정 칩 스타일(연한 배경 + 글자색, 빗금 없음). 자물쇠 아이콘은 별도 표시.
   privateChipStyle() {
     const pc = this.PRIVATE_COLOR;
-    return 'background-color:' + this.hexToRgba(pc, 0.14) + ';' +
-      'background-image:repeating-linear-gradient(45deg, ' + this.hexToRgba(pc, 0.4) + ' 0 2px, transparent 2px 6px);' +
-      'color:' + pc + ';';
+    return 'background-color:' + this.hexToRgba(pc, 0.16) + ';color:' + pc + ';';
   }
 };

@@ -21,6 +21,11 @@
   }
 
   function cacheEls_() {
+    els.siteTitleTextAdmin = document.getElementById('siteTitleTextAdmin');
+    els.siteTitleInput = document.getElementById('siteTitleInput');
+    els.siteYearInput = document.getElementById('siteYearInput');
+    els.saveSiteConfigBtn = document.getElementById('saveSiteConfigBtn');
+
     els.loginGate = document.getElementById('loginGate');
     els.loginForm = document.getElementById('loginForm');
     els.loginPassword = document.getElementById('loginPassword');
@@ -80,6 +85,7 @@
   function bindEvents_() {
     els.loginForm.addEventListener('submit', onLogin_);
     els.logoutBtn.addEventListener('click', logout_);
+    els.saveSiteConfigBtn.addEventListener('click', onSaveSiteConfig_);
 
     els.adminPrevBtn.addEventListener('click', () => changeMonth_(-1));
     els.adminNextBtn.addEventListener('click', () => changeMonth_(1));
@@ -153,15 +159,44 @@
       const res = await Api.list();
       state.events = res.events;
       APP_CONFIG.applyOrgConfig(res.orgConfig);
+      APP_CONFIG.applySiteConfig(res.siteConfig);
     } catch (err) {
       toast_(err.message, true);
       state.events = [];
     }
     showLoading_(false);
+    renderSiteMeta_();
     populateOrgDatalist_();
     renderOrgColorRows_();
     renderMonthLabel_();
     renderTable_();
+  }
+
+  function renderSiteMeta_() {
+    els.siteTitleTextAdmin.textContent = APP_CONFIG.SITE_TITLE;
+    document.title = APP_CONFIG.SITE_TITLE + ' - 관리자';
+    els.siteTitleInput.value = APP_CONFIG.SITE_TITLE;
+    els.siteYearInput.value = APP_CONFIG.SITE_YEAR;
+  }
+
+  async function onSaveSiteConfig_() {
+    const title = els.siteTitleInput.value.trim();
+    const year = els.siteYearInput.value.trim();
+    if (!title) {
+      toast_('캘린더 제목을 입력하세요.', true);
+      return;
+    }
+    showLoading_(true);
+    try {
+      const cfg = await Api.updateSiteConfig(state.adminPassword, title, year);
+      APP_CONFIG.applySiteConfig(cfg);
+      renderSiteMeta_();
+      toast_('캘린더 제목을 저장했습니다.');
+    } catch (err) {
+      toast_(err.message, true);
+    } finally {
+      showLoading_(false);
+    }
   }
 
   function populateOrgDatalist_() {

@@ -11,12 +11,12 @@ const Api = (function () {
   async function list() {
     if (APP_CONFIG.MOCK_MODE) {
       await delay_(150);
-      return { events: mockEvents_(), orgConfig: mockOrgConfig_() };
+      return { events: mockEvents_(), orgConfig: mockOrgConfig_(), siteConfig: mockSiteConfig_() };
     }
     const res = await fetch(APP_CONFIG.APPS_SCRIPT_URL + '?action=list');
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || '일정을 불러오지 못했습니다.');
-    return { events: data.events, orgConfig: data.orgConfig };
+    return { events: data.events, orgConfig: data.orgConfig, siteConfig: data.siteConfig };
   }
 
   async function post_(payload) {
@@ -61,12 +61,16 @@ const Api = (function () {
   function addOrg(adminPassword, org, color) {
     return post_({ action: 'addOrg', adminPassword, org, color }).then((d) => d.orgConfig);
   }
+  function updateSiteConfig(adminPassword, title, year) {
+    return post_({ action: 'updateSiteConfig', adminPassword, title, year }).then((d) => d.siteConfig);
+  }
 
   // ---------------- Mock backend (로컬 미리보기 전용) ----------------
   const MOCK_ADMIN_KEY = 'calendar_mock_adminPassword';
   const MOCK_PRIVATE_KEY = 'calendar_mock_privatePassword';
   const MOCK_EVENTS_KEY = 'calendar_mock_events';
   const MOCK_ORG_CONFIG_KEY = 'calendar_mock_orgConfig';
+  const MOCK_SITE_CONFIG_KEY = 'calendar_mock_siteConfig';
 
   function mockEvents_() {
     let raw = sessionStorage.getItem(MOCK_EVENTS_KEY);
@@ -97,6 +101,18 @@ const Api = (function () {
   }
   function saveMockOrgConfig_(cfg) {
     sessionStorage.setItem(MOCK_ORG_CONFIG_KEY, JSON.stringify(cfg));
+  }
+
+  function mockSiteConfig_() {
+    let raw = sessionStorage.getItem(MOCK_SITE_CONFIG_KEY);
+    if (!raw) {
+      raw = JSON.stringify({ title: APP_CONFIG.SITE_TITLE, year: APP_CONFIG.SITE_YEAR });
+      sessionStorage.setItem(MOCK_SITE_CONFIG_KEY, raw);
+    }
+    return JSON.parse(raw);
+  }
+  function saveMockSiteConfig_(cfg) {
+    sessionStorage.setItem(MOCK_SITE_CONFIG_KEY, JSON.stringify(cfg));
   }
 
   // 캘린더 화면의 등록/수정/삭제는 관리자 비밀번호 또는 비공개 확인 비밀번호(연동) 둘 중 하나로 허용.
@@ -163,6 +179,15 @@ const Api = (function () {
         saveMockOrgConfig_(cfg);
         return { ok: true, orgConfig: cfg };
       }
+      case 'updateSiteConfig': {
+        if (payload.adminPassword !== mockPassword_(MOCK_ADMIN_KEY)) return { ok: false, error: 'unauthorized' };
+        const cfg = {
+          title: String(payload.title || '').trim() || APP_CONFIG.SITE_TITLE,
+          year: String(payload.year || '').trim() || APP_CONFIG.SITE_YEAR
+        };
+        saveMockSiteConfig_(cfg);
+        return { ok: true, siteConfig: cfg };
+      }
       default:
         return { ok: false, error: 'unknown action' };
     }
@@ -171,6 +196,6 @@ const Api = (function () {
   return {
     list, verifyAdmin, verifyPrivate, changePassword,
     createEvent, updateEvent, deleteEvent,
-    updateOrgColor, updatePrivateColor, addOrg
+    updateOrgColor, updatePrivateColor, addOrg, updateSiteConfig
   };
 })();
