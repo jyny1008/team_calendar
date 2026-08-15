@@ -81,8 +81,8 @@ const ExportTools = (function () {
       const isPrivate = ev.visibility === '비공개';
       const color = ev.color || APP_CONFIG.getOrgColor(ev.org);
       const style = isPrivate
-        ? ''
-        : ' style="border-left-color:' + color + ';background-color:' + hexToRgba_(color, 0.14) + ';"';
+        ? ' style="' + APP_CONFIG.privateChipStyle() + '"'
+        : ' style="background-color:' + color + ';color:#fff;"';
       return '<div class="event-chip' + (isPrivate ? ' private' : '') + '"' + style + '>' +
         escapeHtml_('[' + (ev.org || '기타') + '] ' + ev.title) + '</div>';
     };
@@ -171,10 +171,10 @@ const ExportTools = (function () {
     const chip = (ev) => {
       const isPrivate = ev.visibility === '비공개';
       const color = ev.color || APP_CONFIG.getOrgColor(ev.org);
-      const bg = isPrivate ? '' : 'background-color:' + hexToRgba_(color, 0.16) + ';';
+      const style = isPrivate ? APP_CONFIG.privateChipStyle() : 'background-color:' + color + ';color:#fff;';
       const period = ev.endDate && ev.endDate !== ev.startDate ? ev.startDate + ' ~ ' + ev.endDate : ev.startDate;
       return '<details class="chip-details"><summary class="event-chip' + (isPrivate ? ' private' : '') +
-        '" style="border-left-color:' + color + ';' + bg + '">' +
+        '" style="' + style + '">' +
         escapeHtml_('[' + (ev.org || '기타') + '] ' + ev.title) + '</summary>' +
         '<div class="chip-detail-body">' +
         '<div><b>기간</b> ' + escapeHtml_(period) + '</div>' +
@@ -217,9 +217,8 @@ const ExportTools = (function () {
       .day-num{font-size:12px;font-weight:700;display:block;margin-bottom:4px;}
       .event-list{display:flex;flex-direction:column;gap:3px;}
       .chip-details{margin:0;}
-      summary.event-chip{font-size:11px;font-weight:700;padding:3px 6px;border-radius:5px;border-left:3px solid #4c566a;background:#e5e9f0;cursor:pointer;list-style:none;}
+      summary.event-chip{font-size:11px;font-weight:700;padding:3px 6px;border-radius:5px;cursor:pointer;list-style:none;}
       summary.event-chip::-webkit-details-marker{display:none;}
-      .event-chip.private{background-color:#d8dee9;background-image:repeating-linear-gradient(45deg, rgba(76,86,106,0.16) 0 5px, rgba(76,86,106,0.06) 5px 10px);}
       .chip-detail-body{font-size:11.5px;background:#f7f9fc;border:1px solid #d8dee9;border-top:none;border-radius:0 0 5px 5px;padding:6px 8px;line-height:1.6;}
     `;
   }

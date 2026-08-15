@@ -11,12 +11,12 @@ const Api = (function () {
   async function list() {
     if (APP_CONFIG.MOCK_MODE) {
       await delay_(150);
-      return mockEvents_();
+      return { events: mockEvents_(), orgConfig: mockOrgConfig_() };
     }
     const res = await fetch(APP_CONFIG.APPS_SCRIPT_URL + '?action=list');
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || '일정을 불러오지 못했습니다.');
-    return data.events;
+    return { events: data.events, orgConfig: data.orgConfig };
   }
 
   async function post_(payload) {
@@ -52,11 +52,21 @@ const Api = (function () {
   function deleteEvent(adminPassword, row) {
     return post_({ action: 'delete', adminPassword, row });
   }
+  function updateOrgColor(adminPassword, org, color) {
+    return post_({ action: 'updateOrgColor', adminPassword, org, color }).then((d) => d.orgConfig);
+  }
+  function updatePrivateColor(adminPassword, color) {
+    return post_({ action: 'updatePrivateColor', adminPassword, color }).then((d) => d.orgConfig);
+  }
+  function addOrg(adminPassword, org, color) {
+    return post_({ action: 'addOrg', adminPassword, org, color }).then((d) => d.orgConfig);
+  }
 
   // ---------------- Mock backend (로컬 미리보기 전용) ----------------
   const MOCK_ADMIN_KEY = 'calendar_mock_adminPassword';
   const MOCK_PRIVATE_KEY = 'calendar_mock_privatePassword';
   const MOCK_EVENTS_KEY = 'calendar_mock_events';
+  const MOCK_ORG_CONFIG_KEY = 'calendar_mock_orgConfig';
 
   function mockEvents_() {
     let raw = sessionStorage.getItem(MOCK_EVENTS_KEY);
@@ -71,6 +81,22 @@ const Api = (function () {
   }
   function mockPassword_(key) {
     return sessionStorage.getItem(key) || '2854';
+  }
+
+  function mockOrgConfig_() {
+    let raw = sessionStorage.getItem(MOCK_ORG_CONFIG_KEY);
+    if (!raw) {
+      raw = JSON.stringify({
+        order: APP_CONFIG.ORG_ORDER.slice(),
+        colors: Object.assign({}, APP_CONFIG.ORG_COLORS),
+        privateColor: APP_CONFIG.PRIVATE_COLOR
+      });
+      sessionStorage.setItem(MOCK_ORG_CONFIG_KEY, raw);
+    }
+    return JSON.parse(raw);
+  }
+  function saveMockOrgConfig_(cfg) {
+    sessionStorage.setItem(MOCK_ORG_CONFIG_KEY, JSON.stringify(cfg));
   }
 
   // 캘린더 화면의 등록/수정/삭제는 관리자 비밀번호 또는 비공개 확인 비밀번호(연동) 둘 중 하나로 허용.
@@ -113,10 +139,38 @@ const Api = (function () {
         saveMockEvents_(events.filter((e) => e._row !== payload.row));
         return { ok: true };
       }
+      case 'updateOrgColor': {
+        if (payload.adminPassword !== mockPassword_(MOCK_ADMIN_KEY)) return { ok: false, error: 'unauthorized' };
+        const cfg = mockOrgConfig_();
+        cfg.colors[payload.org] = payload.color;
+        saveMockOrgConfig_(cfg);
+        return { ok: true, orgConfig: cfg };
+      }
+      case 'updatePrivateColor': {
+        if (payload.adminPassword !== mockPassword_(MOCK_ADMIN_KEY)) return { ok: false, error: 'unauthorized' };
+        const cfg = mockOrgConfig_();
+        cfg.privateColor = payload.color;
+        saveMockOrgConfig_(cfg);
+        return { ok: true, orgConfig: cfg };
+      }
+      case 'addOrg': {
+        if (payload.adminPassword !== mockPassword_(MOCK_ADMIN_KEY)) return { ok: false, error: 'unauthorized' };
+        const cfg = mockOrgConfig_();
+        const name = String(payload.org || '').trim();
+        if (!name) return { ok: false, error: '주관명을 입력하세요' };
+        if (cfg.order.indexOf(name) === -1) cfg.order.push(name);
+        cfg.colors[name] = payload.color || APP_CONFIG.ORG_COLORS.__default;
+        saveMockOrgConfig_(cfg);
+        return { ok: true, orgConfig: cfg };
+      }
       default:
         return { ok: false, error: 'unknown action' };
     }
   }
 
-  return { list, verifyAdmin, verifyPrivate, changePassword, createEvent, updateEvent, deleteEvent };
+  return {
+    list, verifyAdmin, verifyPrivate, changePassword,
+    createEvent, updateEvent, deleteEvent,
+    updateOrgColor, updatePrivateColor, addOrg
+  };
 })();

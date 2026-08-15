@@ -30,18 +30,23 @@
           <input type="checkbox" id="privateToggle" style="accent-color:#A855F7">
           🔒 비공개 일정
         </label>
+        <label class="chip-checkbox" id="holidayLabel">
+          <input type="checkbox" id="holidayToggle">
+          🇰🇷 공휴일 보기
+        </label>
       </div>
       <div class="divider-v"></div>
       <div class="view-toggle" id="viewToggle">
-        <button type="button" class="active" data-view="calendar">📅 캘린더</button>
+        <button type="button" class="active" data-view="month">📅 월</button>
+        <button type="button" data-view="week">🗓️ 주</button>
         <button type="button" data-view="list">📋 목록</button>
       </div>
     </section>
 
     <div class="month-nav">
-      <button class="icon-btn no-print" id="prevMonthBtn" aria-label="이전 달">‹</button>
+      <button class="icon-btn no-print" id="prevMonthBtn" aria-label="이전">‹</button>
       <div class="month-label" id="monthLabel">-</div>
-      <button class="icon-btn no-print" id="nextMonthBtn" aria-label="다음 달">›</button>
+      <button class="icon-btn no-print" id="nextMonthBtn" aria-label="다음">›</button>
       <button class="btn small no-print" id="todayBtn">오늘</button>
       <div class="spacer no-print"></div>
       <button class="btn small no-print" id="addEventBtn">➕ 일정 등록</button>
@@ -52,6 +57,10 @@
         <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
       </div>
       <div class="day-grid" id="calendarBody"></div>
+    </div>
+
+    <div class="week-view hidden" id="weekView">
+      <div class="week-grid" id="weekGrid"></div>
     </div>
 
     <div class="list-view hidden" id="listView">
@@ -139,12 +148,7 @@
           <div class="field">
             <label for="fOrg">주관 *</label>
             <input type="text" id="fOrg" list="orgOptions" required>
-            <datalist id="orgOptions">
-              <option value="중등교육">
-              <option value="직업교육">
-              <option value="중등인사">
-              <option value="진로진학">
-            </datalist>
+            <datalist id="orgOptions"></datalist>
           </div>
           <div class="field full">
             <label for="fAudience">참가대상</label>
@@ -186,6 +190,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="js/config.js"></script>
+  <script src="js/holidays.js"></script>
   <script src="js/mock-data.js"></script>
   <script src="js/api.js"></script>
   <script src="js/calendar.js"></script>

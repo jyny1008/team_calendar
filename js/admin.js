@@ -61,6 +61,13 @@
 
     els.eventTableBody = document.getElementById('eventTableBody');
 
+    els.orgColorRows = document.getElementById('orgColorRows');
+    els.newOrgName = document.getElementById('newOrgName');
+    els.newOrgColor = document.getElementById('newOrgColor');
+    els.addOrgBtn = document.getElementById('addOrgBtn');
+    els.privateColorInput = document.getElementById('privateColorInput');
+    els.savePrivateColorBtn = document.getElementById('savePrivateColorBtn');
+
     els.adminPwForm = document.getElementById('adminPwForm');
     els.newAdminPw = document.getElementById('newAdminPw');
     els.privatePwForm = document.getElementById('privatePwForm');
@@ -103,6 +110,9 @@
     els.eventForm.addEventListener('submit', onSubmitEvent_);
     els.resetFormBtn.addEventListener('click', resetForm_);
 
+    els.addOrgBtn.addEventListener('click', onAddOrg_);
+    els.savePrivateColorBtn.addEventListener('click', onSavePrivateColor_);
+
     els.adminPwForm.addEventListener('submit', (e) => onChangePassword_(e, 'admin', els.newAdminPw));
     els.privatePwForm.addEventListener('submit', (e) => onChangePassword_(e, 'private', els.newPrivatePw));
   }
@@ -140,14 +150,90 @@
   async function loadEvents_() {
     showLoading_(true);
     try {
-      state.events = await Api.list();
+      const res = await Api.list();
+      state.events = res.events;
+      APP_CONFIG.applyOrgConfig(res.orgConfig);
     } catch (err) {
       toast_(err.message, true);
       state.events = [];
     }
     showLoading_(false);
+    populateOrgDatalist_();
+    renderOrgColorRows_();
     renderMonthLabel_();
     renderTable_();
+  }
+
+  function populateOrgDatalist_() {
+    const dl = document.getElementById('orgOptions');
+    if (!dl) return;
+    dl.innerHTML = APP_CONFIG.ORG_ORDER.map((o) => '<option value="' + escapeHtml_(o) + '">').join('');
+  }
+
+  function renderOrgColorRows_() {
+    els.orgColorRows.innerHTML = APP_CONFIG.ORG_ORDER.map((org) => {
+      const color = APP_CONFIG.getOrgColor(org);
+      return '<div class="org-color-row" data-org="' + escapeHtml_(org) + '">' +
+        '<span class="org-color-name">' + escapeHtml_(org) + '</span>' +
+        '<input type="color" class="org-color-input" value="' + color + '">' +
+        '<button type="button" class="btn small org-color-save">저장</button>' +
+        '</div>';
+    }).join('');
+    els.orgColorRows.querySelectorAll('.org-color-row').forEach((row) => {
+      const org = row.dataset.org;
+      const input = row.querySelector('.org-color-input');
+      const saveBtn = row.querySelector('.org-color-save');
+      saveBtn.addEventListener('click', () => onSaveOrgColor_(org, input.value));
+    });
+    els.privateColorInput.value = APP_CONFIG.PRIVATE_COLOR;
+  }
+
+  async function onSaveOrgColor_(org, color) {
+    showLoading_(true);
+    try {
+      const cfg = await Api.updateOrgColor(state.adminPassword, org, color);
+      APP_CONFIG.applyOrgConfig(cfg);
+      renderTable_();
+      toast_('"' + org + '" 색상을 저장했습니다.');
+    } catch (err) {
+      toast_(err.message, true);
+    } finally {
+      showLoading_(false);
+    }
+  }
+
+  async function onSavePrivateColor_() {
+    showLoading_(true);
+    try {
+      const cfg = await Api.updatePrivateColor(state.adminPassword, els.privateColorInput.value);
+      APP_CONFIG.applyOrgConfig(cfg);
+      toast_('비공개 일정 색상을 저장했습니다.');
+    } catch (err) {
+      toast_(err.message, true);
+    } finally {
+      showLoading_(false);
+    }
+  }
+
+  async function onAddOrg_() {
+    const name = els.newOrgName.value.trim();
+    if (!name) {
+      toast_('새 주관명을 입력하세요.', true);
+      return;
+    }
+    showLoading_(true);
+    try {
+      const cfg = await Api.addOrg(state.adminPassword, name, els.newOrgColor.value);
+      APP_CONFIG.applyOrgConfig(cfg);
+      els.newOrgName.value = '';
+      populateOrgDatalist_();
+      renderOrgColorRows_();
+      toast_('"' + name + '" 주관을 추가했습니다.');
+    } catch (err) {
+      toast_(err.message, true);
+    } finally {
+      showLoading_(false);
+    }
   }
 
   function changeMonth_(delta) {

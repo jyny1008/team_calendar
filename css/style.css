@@ -30,6 +30,8 @@
   --success: #10B981;
   --warning: #F59E0B;
   --info: #3B82F6;
+  --private-color: #E11D48;
+  --holiday-color: #DC2626;
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -194,9 +196,9 @@ a { color: var(--accent); }
 }
 .private-toggle.unlocked {
   border-style: solid;
-  border-color: #A855F7;
-  color: #A855F7;
-  background: #faf5ff;
+  border-color: var(--private-color);
+  color: var(--private-color);
+  background: #fff1f4;
 }
 
 /* ---------- View toggle (calendar / list) ---------- */
@@ -313,6 +315,8 @@ a { color: var(--accent); }
 }
 .day-cell.sun .day-num { color: #FB4D4D; }
 .day-cell.sat .day-num { color: #3B82F6; }
+.day-num.holiday { color: var(--holiday-color); }
+.day-cell.today .day-num.holiday { color: #fff; background: var(--holiday-color); }
 
 .event-list {
   display: flex;
@@ -341,13 +345,7 @@ a { color: var(--accent); }
   box-shadow: 0 1px 1px rgba(18,20,28,0.06);
 }
 .event-chip:hover { filter: brightness(1.08); transform: translateY(-1px); }
-.event-chip.private {
-  color: var(--n0);
-  background-color: var(--n6) !important;
-  background-image: repeating-linear-gradient(
-    45deg, rgba(75, 81, 96, 0.14) 0 5px, rgba(75, 81, 96, 0.05) 5px 10px
-  );
-}
+/* 비공개 일정의 실제 배경/빗금/글자색은 APP_CONFIG.privateChipStyle()로 인라인 지정된다(색상 변경 가능). */
 .event-chip.private::before { content: "🔒 "; }
 
 .event-more {
@@ -357,6 +355,56 @@ a { color: var(--accent); }
   cursor: pointer;
   font-weight: 700;
 }
+
+/* ---------- Week view ---------- */
+.week-view {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.week-day-col {
+  border-right: 1px solid var(--border);
+  padding: 10px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 480px;
+}
+.week-grid .week-day-col:last-child { border-right: none; }
+.week-day-col.today { background: var(--accent-soft); }
+.week-day-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.wd-label { font-size: 11px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.02em; }
+.wd-date {
+  font-size: 18px;
+  font-weight: 800;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text);
+}
+.week-day-col.sun .wd-label, .week-day-col.sun .wd-date { color: #FB4D4D; }
+.week-day-col.sat .wd-label, .week-day-col.sat .wd-date { color: #3B82F6; }
+.wd-date.holiday { color: var(--holiday-color); }
+.week-day-col.today .wd-date {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+}
+.week-day-col.today .wd-date.holiday { background: var(--holiday-color); color: #fff; }
+.event-list.week { max-height: none; flex: 1; overflow-y: auto; gap: 5px; }
+.event-list.week .event-chip { white-space: normal; }
 
 /* ---------- List view ---------- */
 .list-view {
@@ -452,7 +500,7 @@ table.list-table .org-pill {
   padding: 2px 10px;
   border-radius: var(--radius-pill);
 }
-.tag.visibility-private { background: #A855F7; }
+.tag.visibility-private { background: var(--private-color); }
 .tag.visibility-public { background: #10B981; }
 
 .modal-actions {
@@ -567,6 +615,28 @@ table.admin-table .swatch {
   display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: 0px; margin-right: 5px;
 }
 table.admin-table .row-actions { display: flex; gap: 6px; }
+
+/* ---------- Admin: 주관 색상 관리 ---------- */
+.org-color-rows { display: flex; flex-direction: column; gap: 2px; }
+.org-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.org-color-row:last-child { border-bottom: none; }
+.org-color-name { flex: 1; font-weight: 700; font-size: 13.5px; }
+.org-color-row input[type="color"] {
+  width: 40px; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 2px; background: #fff; cursor: pointer;
+}
+.org-color-row-add { margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
+.org-color-row-add input[type="text"] {
+  flex: 1; min-width: 140px; padding: 8px 11px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 13.5px; font-family: inherit;
+}
+.org-color-row-private { margin-top: 4px; }
 
 .section-card {
   background: var(--surface);

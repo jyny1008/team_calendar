@@ -2,16 +2,20 @@
  * 공개 캘린더 화면 로직 (index.html)
  */
 (function () {
+  const WEEKDAY_LABELS_ = ['일', '월', '화', '수', '목', '금', '토'];
+
   const state = {
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1, // 1-12
+    weekAnchor: new Date(), // 주별 보기 기준일
     events: [],
     orgs: [],
     activeOrgs: new Set(),
     _knownOrgs: null,
     privateChecked: false,
     privatePassword: null, // 세션 중 메모리에만 보관 (쓰기 작업용, 새로고침 시 초기화)
-    view: 'calendar' // 'calendar' | 'list'
+    showHolidays: false,
+    view: 'month' // 'month' | 'week' | 'list'
   };
 
   const els = {};
@@ -25,12 +29,15 @@
     bindStaticEvents_();
     showLoading_(true);
     try {
-      state.events = await Api.list();
+      const res = await Api.list();
+      state.events = res.events;
+      APP_CONFIG.applyOrgConfig(res.orgConfig);
     } catch (err) {
       toast_(err.message, true);
       state.events = [];
     }
     showLoading_(false);
+    populateOrgDatalist_();
     buildOrgFilters_();
     state.privateChecked = sessionStorage.getItem('calendar_privateUnlocked') === '1';
     els.privateToggle.checked = state.privateChecked;
@@ -49,10 +56,14 @@
     els.selectAllLabel = document.getElementById('selectAllLabel');
     els.privateToggle = document.getElementById('privateToggle');
     els.privateLabel = document.getElementById('privateLabel');
+    els.holidayToggle = document.getElementById('holidayToggle');
+    els.holidayLabel = document.getElementById('holidayLabel');
     els.viewToggleBtns = Array.from(document.querySelectorAll('#viewToggle button'));
     els.calendarView = document.getElementById('calendarView');
+    els.weekView = document.getElementById('weekView');
     els.listView = document.getElementById('listView');
     els.calendarBody = document.getElementById('calendarBody');
+    els.weekGrid = document.getElementById('weekGrid');
     els.listTableBody = document.getElementById('listTableBody');
 
     els.detailModal = document.getElementById('detailModal');
@@ -90,12 +101,13 @@
   }
 
   function bindStaticEvents_() {
-    els.prevBtn.addEventListener('click', () => changeMonth_(-1));
-    els.nextBtn.addEventListener('click', () => changeMonth_(1));
+    els.prevBtn.addEventListener('click', () => changeNav_(-1));
+    els.nextBtn.addEventListener('click', () => changeNav_(1));
     els.todayBtn.addEventListener('click', () => {
       const now = new Date();
       state.year = now.getFullYear();
       state.month = now.getMonth() + 1;
+      state.weekAnchor = now;
       render_();
     });
 
@@ -105,9 +117,14 @@
 
     els.viewToggleBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        state.view = btn.dataset.view;
+        const newView = btn.dataset.view;
+        if (newView === 'week' && state.view !== 'week') {
+          state.weekAnchor = new Date(state.year, state.month - 1, 1);
+        }
+        state.view = newView;
         els.viewToggleBtns.forEach((b) => b.classList.toggle('active', b === btn));
-        els.calendarView.classList.toggle('hidden', state.view !== 'calendar');
+        els.calendarView.classList.toggle('hidden', state.view !== 'month');
+        els.weekView.classList.toggle('hidden', state.view !== 'week');
         els.listView.classList.toggle('hidden', state.view !== 'list');
         render_();
       });
@@ -124,6 +141,12 @@
     });
 
     els.privateToggle.addEventListener('change', onPrivateToggle_);
+
+    els.holidayToggle.addEventListener('change', () => {
+      state.showHolidays = els.holidayToggle.checked;
+      els.holidayLabel.classList.toggle('active', state.showHolidays);
+      render_();
+    });
 
     document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', (e) => closeModal_(e.target.closest('.modal-overlay')));
@@ -154,20 +177,34 @@
     els.eventForm.addEventListener('submit', onSubmitEventForm_);
   }
 
-  function changeMonth_(delta) {
-    let m = state.month + delta;
-    let y = state.year;
-    if (m < 1) { m = 12; y -= 1; }
-    if (m > 12) { m = 1; y += 1; }
-    state.month = m;
-    state.year = y;
+  function changeNav_(delta) {
+    if (state.view === 'week') {
+      const d = new Date(state.weekAnchor);
+      d.setDate(d.getDate() + delta * 7);
+      state.weekAnchor = d;
+      state.year = d.getFullYear();
+      state.month = d.getMonth() + 1;
+    } else {
+      let m = state.month + delta;
+      let y = state.year;
+      if (m < 1) { m = 12; y -= 1; }
+      if (m > 12) { m = 1; y += 1; }
+      state.month = m;
+      state.year = y;
+    }
     render_();
+  }
+
+  function populateOrgDatalist_() {
+    const dl = document.getElementById('orgOptions');
+    if (!dl) return;
+    dl.innerHTML = APP_CONFIG.ORG_ORDER.map((o) => '<option value="' + escapeHtml_(o) + '">').join('');
   }
 
   function buildOrgFilters_() {
     const set = new Set();
     state.events.forEach((e) => { if (e.org) set.add(e.org); });
-    const known = ['중등교육', '직업교육', '중등인사', '진로진학'];
+    const known = APP_CONFIG.ORG_ORDER;
     const orgs = known.filter((o) => set.has(o)).concat([...set].filter((o) => !known.includes(o)));
 
     const prevKnown = state._knownOrgs;
@@ -284,12 +321,35 @@
   function closeModal_(overlay) { overlay.classList.add('hidden'); }
 
   function render_() {
-    els.monthLabel.textContent = state.year + '년 ' + state.month + '월';
-    if (state.view === 'list') {
-      renderList_();
+    renderMonthLabel_();
+    if (state.view === 'week') renderWeek_();
+    else if (state.view === 'list') renderList_();
+    else renderCalendar_();
+  }
+
+  function renderMonthLabel_() {
+    if (state.view === 'week') {
+      const start = weekStartOf_(state.weekAnchor);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      els.monthLabel.textContent = formatWeekRange_(start, end);
     } else {
-      renderCalendar_();
+      els.monthLabel.textContent = state.year + '년 ' + state.month + '월';
     }
+  }
+
+  function weekStartOf_(d) {
+    const s = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    s.setDate(s.getDate() - s.getDay());
+    return s;
+  }
+
+  function formatWeekRange_(start, end) {
+    const y = start.getFullYear();
+    if (start.getMonth() === end.getMonth()) {
+      return y + '년 ' + (start.getMonth() + 1) + '월 ' + start.getDate() + '일~' + end.getDate() + '일';
+    }
+    return y + '년 ' + (start.getMonth() + 1) + '월 ' + start.getDate() + '일 ~ ' + (end.getMonth() + 1) + '월 ' + end.getDate() + '일';
   }
 
   function renderCalendar_() {
@@ -307,6 +367,7 @@
       const dateStr = formatDate_(cellDate);
       const inMonth = cellDate.getMonth() === state.month - 1;
       const dow = cellDate.getDay();
+      const holidayName = state.showHolidays ? window.KR_HOLIDAYS[dateStr] : null;
 
       const cell = document.createElement('div');
       cell.className = 'day-cell';
@@ -316,8 +377,9 @@
       if (dow === 6) cell.classList.add('sat');
 
       const num = document.createElement('span');
-      num.className = 'day-num';
+      num.className = 'day-num' + (holidayName ? ' holiday' : '');
       num.textContent = cellDate.getDate();
+      if (holidayName) num.title = holidayName;
       cell.appendChild(num);
 
       const list = document.createElement('div');
@@ -327,6 +389,42 @@
       cell.appendChild(list);
 
       els.calendarBody.appendChild(cell);
+    }
+  }
+
+  function renderWeek_() {
+    const start = weekStartOf_(state.weekAnchor);
+    const todayStr = formatDate_(new Date());
+    const eventsByDate = indexEventsByDate_();
+
+    els.weekGrid.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const cellDate = new Date(start);
+      cellDate.setDate(start.getDate() + i);
+      const dateStr = formatDate_(cellDate);
+      const dow = cellDate.getDay();
+      const holidayName = state.showHolidays ? window.KR_HOLIDAYS[dateStr] : null;
+
+      const col = document.createElement('div');
+      col.className = 'week-day-col';
+      if (dateStr === todayStr) col.classList.add('today');
+      if (dow === 0) col.classList.add('sun');
+      if (dow === 6) col.classList.add('sat');
+
+      const head = document.createElement('div');
+      head.className = 'week-day-head';
+      if (holidayName) head.title = holidayName;
+      head.innerHTML =
+        '<span class="wd-label">' + WEEKDAY_LABELS_[dow] + '</span>' +
+        '<span class="wd-date' + (holidayName ? ' holiday' : '') + '">' + cellDate.getDate() + '</span>';
+      col.appendChild(head);
+
+      const list = document.createElement('div');
+      list.className = 'event-list week';
+      (eventsByDate[dateStr] || []).filter(passesFilter_).forEach((ev) => list.appendChild(buildChip_(ev)));
+      col.appendChild(list);
+
+      els.weekGrid.appendChild(col);
     }
   }
 
@@ -397,8 +495,10 @@
     const isPrivate = ev.visibility === '비공개';
     btn.className = 'event-chip' + (isPrivate ? ' private' : '');
     btn.textContent = '[' + (ev.org || '기타') + '] ' + ev.title;
-    const color = ev.color || APP_CONFIG.getOrgColor(ev.org);
-    if (!isPrivate) {
+    if (isPrivate) {
+      btn.style.cssText += APP_CONFIG.privateChipStyle();
+    } else {
+      const color = ev.color || APP_CONFIG.getOrgColor(ev.org);
       btn.style.backgroundColor = color;
     }
     btn.addEventListener('click', () => openDetail_(ev));
@@ -526,11 +626,14 @@
 
   async function reloadEvents_() {
     try {
-      state.events = await Api.list();
+      const res = await Api.list();
+      state.events = res.events;
+      APP_CONFIG.applyOrgConfig(res.orgConfig);
     } catch (err) {
       toast_(err.message, true);
       return;
     }
+    populateOrgDatalist_();
     buildOrgFilters_();
     render_();
   }

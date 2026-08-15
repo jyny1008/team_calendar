@@ -15,6 +15,17 @@ const MAIN_SHEET_INDEX = 0;
 const CONFIG_SHEET_NAME = 'Config';
 const DEFAULT_PASSWORD = '2854';
 
+const ORG_CONFIG_KEY = 'orgConfig';
+const DEFAULT_ORG_ORDER = ['중등교육', '진로진학', '직업교육', '중등인사'];
+const DEFAULT_ORG_COLORS = {
+  '중등교육': '#3B82F6',
+  '진로진학': '#A855F7',
+  '직업교육': '#10B981',
+  '중등인사': '#F59E0B',
+  '__default': '#64748B'
+};
+const DEFAULT_PRIVATE_COLOR = '#E11D48';
+
 const COL_SEQ = 1;
 const COL_START_DATE = 2;
 const COL_START_TIME = 3;
@@ -104,6 +115,34 @@ function jsonOutput_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// 주관 표시 순서 / 주관별 색상 / 비공개 일정 색상을 Config 탭에 JSON으로 저장한다.
+function getOrgConfig_() {
+  const raw = getConfigValue_(ORG_CONFIG_KEY);
+  const fallback = {
+    order: DEFAULT_ORG_ORDER.slice(),
+    colors: Object.assign({}, DEFAULT_ORG_COLORS),
+    privateColor: DEFAULT_PRIVATE_COLOR
+  };
+  if (!raw) {
+    setConfigValue_(ORG_CONFIG_KEY, JSON.stringify(fallback));
+    return fallback;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      order: parsed.order && parsed.order.length ? parsed.order : fallback.order,
+      colors: Object.assign({}, DEFAULT_ORG_COLORS, parsed.colors || {}),
+      privateColor: parsed.privateColor || fallback.privateColor
+    };
+  } catch (err) {
+    return fallback;
+  }
+}
+
+function saveOrgConfig_(cfg) {
+  setConfigValue_(ORG_CONFIG_KEY, JSON.stringify(cfg));
+}
+
 const DAY_NAMES_ = ['일', '월', '화', '수', '목', '금', '토'];
 
 function formatDateWithDay_(dateStr) {
@@ -139,7 +178,7 @@ function doGet(e) {
   const action = e.parameter.action;
   try {
     if (action === 'list') {
-      return jsonOutput_({ ok: true, events: listEvents_() });
+      return jsonOutput_({ ok: true, events: listEvents_(), orgConfig: getOrgConfig_() });
     }
     return jsonOutput_({ ok: false, error: 'unknown action' });
   } catch (err) {
@@ -209,6 +248,30 @@ function doPost(e) {
         if (!requireEditAccess_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
         deleteEvent_(body.row);
         return jsonOutput_({ ok: true });
+      }
+      case 'updateOrgColor': {
+        if (!requireAdmin_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
+        const cfg = getOrgConfig_();
+        cfg.colors[body.org] = body.color;
+        saveOrgConfig_(cfg);
+        return jsonOutput_({ ok: true, orgConfig: cfg });
+      }
+      case 'updatePrivateColor': {
+        if (!requireAdmin_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
+        const cfg = getOrgConfig_();
+        cfg.privateColor = body.color;
+        saveOrgConfig_(cfg);
+        return jsonOutput_({ ok: true, orgConfig: cfg });
+      }
+      case 'addOrg': {
+        if (!requireAdmin_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
+        const cfg = getOrgConfig_();
+        const name = String(body.org || '').trim();
+        if (!name) throw new Error('주관명을 입력하세요');
+        if (cfg.order.indexOf(name) === -1) cfg.order.push(name);
+        cfg.colors[name] = body.color || DEFAULT_ORG_COLORS.__default;
+        saveOrgConfig_(cfg);
+        return jsonOutput_({ ok: true, orgConfig: cfg });
       }
       default:
         return jsonOutput_({ ok: false, error: 'unknown action' });
