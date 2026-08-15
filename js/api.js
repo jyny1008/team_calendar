@@ -73,6 +73,11 @@ const Api = (function () {
     return sessionStorage.getItem(key) || '2854';
   }
 
+  // 캘린더 화면의 등록/수정/삭제는 관리자 비밀번호 또는 비공개 확인 비밀번호(연동) 둘 중 하나로 허용.
+  function mockHasEditAccess_(password) {
+    return password === mockPassword_(MOCK_ADMIN_KEY) || password === mockPassword_(MOCK_PRIVATE_KEY);
+  }
+
   async function mockPost_(payload) {
     await delay_(120);
     const events = mockEvents_();
@@ -88,7 +93,7 @@ const Api = (function () {
         return { ok: true };
       }
       case 'create': {
-        if (payload.adminPassword !== mockPassword_(MOCK_ADMIN_KEY)) return { ok: false, error: 'unauthorized' };
+        if (!mockHasEditAccess_(payload.adminPassword)) return { ok: false, error: 'unauthorized' };
         const maxSeq = events.reduce((m, e) => Math.max(m, Number(e.seq) || 0), 0);
         const maxRow = events.reduce((m, e) => Math.max(m, Number(e._row) || 1), 1);
         const ev = Object.assign({}, payload.event, { seq: maxSeq + 1, _row: maxRow + 1 });
@@ -97,14 +102,14 @@ const Api = (function () {
         return { ok: true, event: { _row: ev._row, seq: ev.seq } };
       }
       case 'update': {
-        if (payload.adminPassword !== mockPassword_(MOCK_ADMIN_KEY)) return { ok: false, error: 'unauthorized' };
+        if (!mockHasEditAccess_(payload.adminPassword)) return { ok: false, error: 'unauthorized' };
         const idx = events.findIndex((e) => e._row === payload.event._row);
         if (idx >= 0) events[idx] = Object.assign({}, events[idx], payload.event);
         saveMockEvents_(events);
         return { ok: true };
       }
       case 'delete': {
-        if (payload.adminPassword !== mockPassword_(MOCK_ADMIN_KEY)) return { ok: false, error: 'unauthorized' };
+        if (!mockHasEditAccess_(payload.adminPassword)) return { ok: false, error: 'unauthorized' };
         saveMockEvents_(events.filter((e) => e._row !== payload.row));
         return { ok: true };
       }

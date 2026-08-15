@@ -101,6 +101,33 @@ const ExportTools = (function () {
     return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
   }
 
+  // ---------------- 일정 목록 표 PDF (브라우저 인쇄) ----------------
+  function printEventTable(year, month, events) {
+    const container = document.getElementById('printCalendar');
+    if (!container) return;
+    const list = events.slice().sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+    const headers = ['기간', '주관', '행사명', '장소', '담당자', '공개여부'];
+    const rowsHtml = list.map((ev) => {
+      const period = ev.endDate && ev.endDate !== ev.startDate ? ev.startDate + ' ~ ' + ev.endDate : ev.startDate;
+      return '<tr>' +
+        '<td>' + escapeHtml_(period) + '</td>' +
+        '<td>' + escapeHtml_(ev.org || '-') + '</td>' +
+        '<td>' + escapeHtml_(ev.title) + '</td>' +
+        '<td>' + escapeHtml_(ev.location || '-') + '</td>' +
+        '<td>' + escapeHtml_(ev.manager || '-') + '</td>' +
+        '<td>' + escapeHtml_(ev.visibility || '공개') + '</td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="6" style="text-align:center;padding:16px;">등록된 일정이 없습니다.</td></tr>';
+
+    container.innerHTML =
+      '<h2 style="margin:0 0 12px;">' + year + '년 ' + month + '월 중등교육 캘린더 - 일정 목록</h2>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr>' + headers.map((h) => '<th style="text-align:left;border-bottom:1.5px solid #333;padding:6px 8px;">' + h + '</th>').join('') + '</tr></thead>' +
+      '<tbody>' + rowsHtml + '</tbody></table>' +
+      '<style>#printCalendar td{border-bottom:1px solid #ddd;padding:6px 8px;}</style>';
+    window.print();
+  }
+
   // ---------------- 엑셀 (SheetJS) ----------------
   function exportExcel(year, month, events) {
     const rows = events
@@ -197,5 +224,5 @@ const ExportTools = (function () {
     `;
   }
 
-  return { printMonth, exportExcel, downloadOfflineHtml, indexByDate_ };
+  return { printMonth, printEventTable, exportExcel, downloadOfflineHtml, indexByDate_ };
 })();

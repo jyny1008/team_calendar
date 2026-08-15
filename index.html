@@ -27,9 +27,14 @@
       <div class="divider-v"></div>
       <div class="filter-group">
         <label class="private-toggle" id="privateLabel">
-          <input type="checkbox" id="privateToggle" style="accent-color:var(--nord15)">
+          <input type="checkbox" id="privateToggle" style="accent-color:#A855F7">
           🔒 비공개 일정
         </label>
+      </div>
+      <div class="divider-v"></div>
+      <div class="view-toggle" id="viewToggle">
+        <button type="button" class="active" data-view="calendar">📅 캘린더</button>
+        <button type="button" data-view="list">📋 목록</button>
       </div>
     </section>
 
@@ -38,13 +43,26 @@
       <div class="month-label" id="monthLabel">-</div>
       <button class="icon-btn no-print" id="nextMonthBtn" aria-label="다음 달">›</button>
       <button class="btn small no-print" id="todayBtn">오늘</button>
+      <div class="spacer no-print"></div>
+      <button class="btn small no-print" id="addEventBtn">➕ 일정 등록</button>
     </div>
 
-    <div class="calendar">
+    <div class="calendar" id="calendarView">
       <div class="weekday-row">
         <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
       </div>
       <div class="day-grid" id="calendarBody"></div>
+    </div>
+
+    <div class="list-view hidden" id="listView">
+      <div class="list-scroll-wrap">
+        <table class="list-table">
+          <thead>
+            <tr><th>기간</th><th>주관</th><th>행사명</th><th>장소</th><th>담당자</th></tr>
+          </thead>
+          <tbody id="listTableBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -56,6 +74,10 @@
         <button class="modal-close" data-close-modal>✕</button>
       </div>
       <div id="detailBody"></div>
+      <div class="modal-actions no-print">
+        <button type="button" class="btn danger small" id="detailDeleteBtn">🗑️ 삭제</button>
+        <button type="button" class="btn small" id="detailEditBtn">✏️ 수정</button>
+      </div>
     </div>
   </div>
 
@@ -63,7 +85,7 @@
   <div class="modal-overlay hidden" id="passwordModal">
     <div class="modal-card">
       <div class="modal-header">
-        <div class="modal-title">비공개 일정 확인</div>
+        <div class="modal-title" id="passwordModalTitle">비공개 일정 확인</div>
         <button class="modal-close" data-close-modal>✕</button>
       </div>
       <form id="passwordForm">
@@ -74,6 +96,87 @@
         <div class="login-gate error" id="passwordError" style="padding:0;margin-top:6px;"></div>
         <div class="form-actions">
           <button type="submit" class="btn primary">확인</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 일정 등록/수정 모달 -->
+  <div class="modal-overlay hidden" id="eventFormModal">
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <div class="modal-title" id="eventFormTitle">일정 등록</div>
+        <button class="modal-close" data-close-modal>✕</button>
+      </div>
+      <form id="eventForm">
+        <input type="hidden" id="fRow">
+        <input type="hidden" id="fSeq">
+        <div class="form-grid">
+          <div class="field">
+            <label for="fStartDate">시작일 *</label>
+            <input type="date" id="fStartDate" required>
+          </div>
+          <div class="field">
+            <label for="fStartTime">시작시간 (생략가능)</label>
+            <input type="time" id="fStartTime">
+          </div>
+          <div class="field">
+            <label for="fEndDate">종료일 (당일 행사는 비워두세요)</label>
+            <input type="date" id="fEndDate">
+          </div>
+          <div class="field">
+            <label for="fEndTime">종료시간 (생략가능)</label>
+            <input type="time" id="fEndTime">
+          </div>
+          <div class="field full">
+            <label for="fTitle">행사명 *</label>
+            <input type="text" id="fTitle" required>
+          </div>
+          <div class="field">
+            <label for="fLocation">장소</label>
+            <input type="text" id="fLocation">
+          </div>
+          <div class="field">
+            <label for="fOrg">주관 *</label>
+            <input type="text" id="fOrg" list="orgOptions" required>
+            <datalist id="orgOptions">
+              <option value="중등교육">
+              <option value="직업교육">
+              <option value="중등인사">
+              <option value="진로진학">
+            </datalist>
+          </div>
+          <div class="field full">
+            <label for="fAudience">참가대상</label>
+            <input type="text" id="fAudience">
+          </div>
+          <div class="field">
+            <label for="fManager">담당자</label>
+            <input type="text" id="fManager">
+          </div>
+          <div class="field">
+            <label>공개여부</label>
+            <div class="radio-row">
+              <label><input type="radio" name="fVisibility" value="공개" checked> 공개</label>
+              <label><input type="radio" name="fVisibility" value="비공개"> 비공개</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="fColor">색상</label>
+            <div class="color-field">
+              <input type="checkbox" id="fColorDefault" checked>
+              <span style="font-size:12.5px;">주관 기본색 사용</span>
+              <input type="color" id="fColor" value="#3B82F6" disabled>
+            </div>
+          </div>
+          <div class="field full">
+            <label for="fNote">비고</label>
+            <textarea id="fNote"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn ghost" data-close-modal>취소</button>
+          <button type="submit" class="btn primary" id="eventFormSubmitBtn">등록</button>
         </div>
       </form>
     </div>

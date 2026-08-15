@@ -120,16 +120,26 @@
     </section>
 
     <section class="section-card">
-      <h2>🗂️ <span id="tableMonthLabel">-</span> 일정 목록</h2>
+      <div class="section-head">
+        <h2>🗂️ <span id="tableMonthLabel">-</span> 일정 목록</h2>
+        <div class="section-nav">
+          <button class="icon-btn small" id="tablePrevBtn" aria-label="이전 달">‹</button>
+          <button class="icon-btn small" id="tableNextBtn" aria-label="다음 달">›</button>
+          <button class="btn small" id="tablePdfBtn">🖨️ 표 PDF</button>
+          <button class="btn small" id="tableExcelBtn">📊 표 엑셀</button>
+        </div>
+      </div>
       <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>기간</th><th>주관</th><th>행사명</th><th>장소</th><th>담당자</th><th>공개여부</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="eventTableBody"></tbody>
-        </table>
+        <div class="admin-table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>기간</th><th>주관</th><th>행사명</th><th>장소</th><th>담당자</th><th>공개여부</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="eventTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 

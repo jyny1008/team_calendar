@@ -32,6 +32,10 @@
     els.adminNextBtn = document.getElementById('adminNextBtn');
     els.adminMonthLabel = document.getElementById('adminMonthLabel');
     els.tableMonthLabel = document.getElementById('tableMonthLabel');
+    els.tablePrevBtn = document.getElementById('tablePrevBtn');
+    els.tableNextBtn = document.getElementById('tableNextBtn');
+    els.tablePdfBtn = document.getElementById('tablePdfBtn');
+    els.tableExcelBtn = document.getElementById('tableExcelBtn');
 
     els.exportPdfBtn = document.getElementById('exportPdfBtn');
     els.exportExcelBtn = document.getElementById('exportExcelBtn');
@@ -72,6 +76,8 @@
 
     els.adminPrevBtn.addEventListener('click', () => changeMonth_(-1));
     els.adminNextBtn.addEventListener('click', () => changeMonth_(1));
+    els.tablePrevBtn.addEventListener('click', () => changeMonth_(-1));
+    els.tableNextBtn.addEventListener('click', () => changeMonth_(1));
 
     els.exportPdfBtn.addEventListener('click', () => {
       ExportTools.printMonth(state.viewYear, state.viewMonth, filterEventsForMonth_(state.viewYear, state.viewMonth, state.events));
@@ -82,6 +88,12 @@
     els.exportOfflineBtn.addEventListener('click', () => {
       ExportTools.downloadOfflineHtml(state.viewYear, state.viewMonth, filterEventsForMonth_(state.viewYear, state.viewMonth, state.events));
       toast_('오프라인 HTML 파일을 생성했습니다.');
+    });
+    els.tablePdfBtn.addEventListener('click', () => {
+      ExportTools.printEventTable(state.viewYear, state.viewMonth, filterEventsForMonth_(state.viewYear, state.viewMonth, state.events));
+    });
+    els.tableExcelBtn.addEventListener('click', () => {
+      ExportTools.exportExcel(state.viewYear, state.viewMonth, filterEventsForMonth_(state.viewYear, state.viewMonth, state.events));
     });
 
     els.fColorDefault.addEventListener('change', () => {

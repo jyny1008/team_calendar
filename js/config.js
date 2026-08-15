@@ -13,13 +13,13 @@ const APP_CONFIG = {
     return !this.APPS_SCRIPT_URL;
   },
 
-  // 주관별 기본 색상 (Nord 팔레트). 관리자 페이지에서 일정별로 재정의 가능.
+  // 주관별 기본 색상 (부서 구분이 뚜렷하도록 채도 높은 팔레트). 관리자 페이지에서 일정별로 재정의 가능.
   ORG_COLORS: {
-    '중등교육': '#5e81ac', // nord10
-    '직업교육': '#a3be8c', // nord14
-    '중등인사': '#d08770', // nord12
-    '진로진학': '#b48ead', // nord15
-    '__default': '#4c566a' // nord3
+    '중등교육': '#3B82F6', // blue
+    '직업교육': '#10B981', // green
+    '중등인사': '#F59E0B', // amber
+    '진로진학': '#A855F7', // purple
+    '__default': '#64748B' // slate
   },
 
   getOrgColor(org) {

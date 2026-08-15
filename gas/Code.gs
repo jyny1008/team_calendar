@@ -197,16 +197,16 @@ function doPost(e) {
         return jsonOutput_({ ok: true });
       }
       case 'create': {
-        if (!requireAdmin_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
+        if (!requireEditAccess_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
         return jsonOutput_({ ok: true, event: createEvent_(body.event) });
       }
       case 'update': {
-        if (!requireAdmin_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
+        if (!requireEditAccess_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
         updateEvent_(body.event);
         return jsonOutput_({ ok: true });
       }
       case 'delete': {
-        if (!requireAdmin_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
+        if (!requireEditAccess_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
         deleteEvent_(body.row);
         return jsonOutput_({ ok: true });
       }
@@ -220,6 +220,15 @@ function doPost(e) {
 
 function requireAdmin_(password) {
   return !!password && hash_(password) === getConfigValue_('adminPasswordHash');
+}
+
+// 캘린더 화면의 일정 등록/수정/삭제는 관리자 비밀번호 또는 비공개 일정 확인
+// 비밀번호(캘린더 화면의 잠금 해제 암호와 연동) 둘 중 하나로 인가한다.
+// 비밀번호 변경(changePassword)은 requireAdmin_ 그대로 사용해 관리자 전용으로 유지한다.
+function requireEditAccess_(password) {
+  if (!password) return false;
+  const h = hash_(password);
+  return h === getConfigValue_('adminPasswordHash') || h === getConfigValue_('privatePasswordHash');
 }
 
 function createEvent_(ev) {

@@ -8,10 +8,15 @@
     events: [],
     orgs: [],
     activeOrgs: new Set(),
-    privateChecked: false
+    _knownOrgs: null,
+    privateChecked: false,
+    privatePassword: null, // 세션 중 메모리에만 보관 (쓰기 작업용, 새로고침 시 초기화)
+    view: 'calendar' // 'calendar' | 'list'
   };
 
   const els = {};
+  let currentDetailEvent = null;
+  let pendingAfterAuth = null;
 
   document.addEventListener('DOMContentLoaded', init);
 
@@ -38,18 +43,48 @@
     els.prevBtn = document.getElementById('prevMonthBtn');
     els.nextBtn = document.getElementById('nextMonthBtn');
     els.todayBtn = document.getElementById('todayBtn');
+    els.addEventBtn = document.getElementById('addEventBtn');
     els.orgFilters = document.getElementById('orgFilters');
     els.selectAllToggle = document.getElementById('selectAllToggle');
     els.selectAllLabel = document.getElementById('selectAllLabel');
     els.privateToggle = document.getElementById('privateToggle');
     els.privateLabel = document.getElementById('privateLabel');
+    els.viewToggleBtns = Array.from(document.querySelectorAll('#viewToggle button'));
+    els.calendarView = document.getElementById('calendarView');
+    els.listView = document.getElementById('listView');
     els.calendarBody = document.getElementById('calendarBody');
+    els.listTableBody = document.getElementById('listTableBody');
+
     els.detailModal = document.getElementById('detailModal');
     els.detailBody = document.getElementById('detailBody');
     els.detailTitle = document.getElementById('detailTitle');
+    els.detailEditBtn = document.getElementById('detailEditBtn');
+    els.detailDeleteBtn = document.getElementById('detailDeleteBtn');
+
     els.passwordModal = document.getElementById('passwordModal');
+    els.passwordModalTitle = document.getElementById('passwordModalTitle');
     els.passwordInput = document.getElementById('passwordInput');
     els.passwordError = document.getElementById('passwordError');
+
+    els.eventFormModal = document.getElementById('eventFormModal');
+    els.eventForm = document.getElementById('eventForm');
+    els.eventFormTitle = document.getElementById('eventFormTitle');
+    els.eventFormSubmitBtn = document.getElementById('eventFormSubmitBtn');
+    els.fRow = document.getElementById('fRow');
+    els.fSeq = document.getElementById('fSeq');
+    els.fStartDate = document.getElementById('fStartDate');
+    els.fStartTime = document.getElementById('fStartTime');
+    els.fEndDate = document.getElementById('fEndDate');
+    els.fEndTime = document.getElementById('fEndTime');
+    els.fTitle = document.getElementById('fTitle');
+    els.fLocation = document.getElementById('fLocation');
+    els.fOrg = document.getElementById('fOrg');
+    els.fAudience = document.getElementById('fAudience');
+    els.fManager = document.getElementById('fManager');
+    els.fColorDefault = document.getElementById('fColorDefault');
+    els.fColor = document.getElementById('fColor');
+    els.fNote = document.getElementById('fNote');
+
     els.loadingOverlay = document.getElementById('loadingOverlay');
     els.toast = document.getElementById('toast');
   }
@@ -62,6 +97,20 @@
       state.year = now.getFullYear();
       state.month = now.getMonth() + 1;
       render_();
+    });
+
+    els.addEventBtn.addEventListener('click', () => {
+      requireAuth_('일정 등록 확인', () => openEventForm_(null));
+    });
+
+    els.viewToggleBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.view = btn.dataset.view;
+        els.viewToggleBtns.forEach((b) => b.classList.toggle('active', b === btn));
+        els.calendarView.classList.toggle('hidden', state.view !== 'calendar');
+        els.listView.classList.toggle('hidden', state.view !== 'list');
+        render_();
+      });
     });
 
     els.selectAllToggle.addEventListener('change', () => {
@@ -84,6 +133,25 @@
     });
 
     document.getElementById('passwordForm').addEventListener('submit', onPasswordSubmit_);
+
+    els.detailEditBtn.addEventListener('click', () => {
+      if (!currentDetailEvent) return;
+      const ev = currentDetailEvent;
+      requireAuth_('일정 수정 확인', () => {
+        closeModal_(els.detailModal);
+        openEventForm_(ev);
+      });
+    });
+    els.detailDeleteBtn.addEventListener('click', () => {
+      if (!currentDetailEvent) return;
+      const ev = currentDetailEvent;
+      requireAuth_('일정 삭제 확인', () => onDeleteEvent_(ev));
+    });
+
+    els.fColorDefault.addEventListener('change', () => {
+      els.fColor.disabled = els.fColorDefault.checked;
+    });
+    els.eventForm.addEventListener('submit', onSubmitEventForm_);
   }
 
   function changeMonth_(delta) {
@@ -101,28 +169,37 @@
     state.events.forEach((e) => { if (e.org) set.add(e.org); });
     const known = ['중등교육', '직업교육', '중등인사', '진로진학'];
     const orgs = known.filter((o) => set.has(o)).concat([...set].filter((o) => !known.includes(o)));
+
+    const prevKnown = state._knownOrgs;
+    orgs.forEach((o) => { if (!prevKnown || !prevKnown.has(o)) state.activeOrgs.add(o); });
+    [...state.activeOrgs].forEach((o) => { if (!orgs.includes(o)) state.activeOrgs.delete(o); });
     state.orgs = orgs;
-    orgs.forEach((o) => state.activeOrgs.add(o));
+    state._knownOrgs = new Set(orgs);
 
     els.orgFilters.innerHTML = '';
     orgs.forEach((org) => {
       const id = 'org_' + org;
+      const active = state.activeOrgs.has(org);
+      const color = APP_CONFIG.getOrgColor(org);
       const label = document.createElement('label');
-      label.className = 'chip-checkbox active';
+      label.className = 'chip-checkbox' + (active ? ' active' : '');
       label.htmlFor = id;
+      if (active) label.style.color = color;
       label.innerHTML =
-        '<input type="checkbox" id="' + id + '" checked>' +
-        '<span class="dot" style="background:' + APP_CONFIG.getOrgColor(org) + '"></span>' +
+        '<input type="checkbox" id="' + id + '"' + (active ? ' checked' : '') + '>' +
+        '<span class="dot" style="background:' + color + '"></span>' +
         escapeHtml_(org);
       const input = label.querySelector('input');
       input.addEventListener('change', () => {
         if (input.checked) state.activeOrgs.add(org); else state.activeOrgs.delete(org);
         label.classList.toggle('active', input.checked);
+        label.style.color = input.checked ? color : '';
         syncSelectAllToggle_();
         render_();
       });
       els.orgFilters.appendChild(label);
     });
+    syncSelectAllToggle_();
   }
 
   function syncOrgCheckboxes_() {
@@ -131,6 +208,7 @@
       const org = input.id.replace('org_', '');
       input.checked = state.activeOrgs.has(org);
       label.classList.toggle('active', input.checked);
+      label.style.color = input.checked ? APP_CONFIG.getOrgColor(org) : '';
     });
     syncSelectAllToggle_();
   }
@@ -149,7 +227,7 @@
         return;
       }
       els.privateToggle.checked = false; // 인증 전에는 원복해두고 모달에서 처리
-      openPasswordModal_();
+      openPasswordModal_('비공개 일정 확인', () => render_());
     } else {
       state.privateChecked = false;
       render_();
@@ -157,7 +235,18 @@
     }
   }
 
-  function openPasswordModal_() {
+  // 비공개 일정 확인 비밀번호로 등록/수정/삭제까지 인가한다(암호 연동).
+  function requireAuth_(title, onSuccess) {
+    if (state.privatePassword) {
+      onSuccess();
+      return;
+    }
+    openPasswordModal_(title, onSuccess);
+  }
+
+  function openPasswordModal_(title, afterAuth) {
+    pendingAfterAuth = afterAuth || null;
+    els.passwordModalTitle.textContent = title || '비공개 일정 확인';
     els.passwordInput.value = '';
     els.passwordError.textContent = '';
     els.passwordModal.classList.remove('hidden');
@@ -172,11 +261,14 @@
       const ok = await Api.verifyPrivate(pw);
       if (ok) {
         state.privateChecked = true;
+        state.privatePassword = pw;
         sessionStorage.setItem('calendar_privateUnlocked', '1');
         els.privateToggle.checked = true;
-        closeModal_(els.passwordModal);
         updatePrivateToggleUi_();
-        render_();
+        closeModal_(els.passwordModal);
+        const cb = pendingAfterAuth;
+        pendingAfterAuth = null;
+        if (cb) cb(); else render_();
       } else {
         els.passwordError.textContent = '비밀번호가 올바르지 않습니다.';
       }
@@ -193,7 +285,14 @@
 
   function render_() {
     els.monthLabel.textContent = state.year + '년 ' + state.month + '월';
+    if (state.view === 'list') {
+      renderList_();
+    } else {
+      renderCalendar_();
+    }
+  }
 
+  function renderCalendar_() {
     const firstOfMonth = new Date(state.year, state.month - 1, 1);
     const startOffset = firstOfMonth.getDay();
     const gridStart = new Date(state.year, state.month - 1, 1 - startOffset);
@@ -231,6 +330,41 @@
     }
   }
 
+  function renderList_() {
+    const monthStart = new Date(state.year, state.month - 1, 1);
+    const monthEnd = new Date(state.year, state.month, 0);
+    const list = state.events.filter((ev) => {
+      if (!ev.startDate) return false;
+      const s = parseDate_(ev.startDate);
+      const en = ev.endDate ? parseDate_(ev.endDate) : s;
+      if (!s || !en) return false;
+      if (!(s <= monthEnd && en >= monthStart)) return false;
+      return passesFilter_(ev);
+    }).sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+
+    els.listTableBody.innerHTML = '';
+    if (list.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="5" class="list-empty">해당 월에 등록된 일정이 없습니다.</td>';
+      els.listTableBody.appendChild(tr);
+      return;
+    }
+    list.forEach((ev) => {
+      const tr = document.createElement('tr');
+      const period = formatPeriod_(ev);
+      const color = ev.color || APP_CONFIG.getOrgColor(ev.org);
+      const isPrivate = ev.visibility === '비공개';
+      tr.innerHTML =
+        '<td>' + escapeHtml_(period) + '</td>' +
+        '<td><span class="org-pill" style="background:' + color + '">' + escapeHtml_(ev.org || '-') + '</span></td>' +
+        '<td>' + (isPrivate ? '🔒 ' : '') + escapeHtml_(ev.title) + '</td>' +
+        '<td>' + escapeHtml_(ev.location || '-') + '</td>' +
+        '<td>' + escapeHtml_(ev.manager || '-') + '</td>';
+      tr.addEventListener('click', () => openDetail_(ev));
+      els.listTableBody.appendChild(tr);
+    });
+  }
+
   function passesFilter_(ev) {
     if (ev.org && !state.activeOrgs.has(ev.org)) return false;
     const isPrivate = ev.visibility === '비공개';
@@ -264,15 +398,15 @@
     btn.className = 'event-chip' + (isPrivate ? ' private' : '');
     btn.textContent = '[' + (ev.org || '기타') + '] ' + ev.title;
     const color = ev.color || APP_CONFIG.getOrgColor(ev.org);
-    btn.style.borderLeftColor = color;
     if (!isPrivate) {
-      btn.style.backgroundColor = hexToRgba_(color, 0.14);
+      btn.style.backgroundColor = color;
     }
     btn.addEventListener('click', () => openDetail_(ev));
     return btn;
   }
 
   function openDetail_(ev) {
+    currentDetailEvent = ev;
     els.detailTitle.textContent = ev.title;
     const period = formatPeriod_(ev);
     const visTag = ev.visibility === '비공개'
@@ -287,6 +421,118 @@
       '<div class="detail-row"><div class="k">공개여부</div><div class="v">' + visTag + '</div></div>' +
       '<div class="detail-row"><div class="k">비고</div><div class="v">' + escapeHtml_(ev.note || '-') + '</div></div>';
     els.detailModal.classList.remove('hidden');
+  }
+
+  function openEventForm_(ev) {
+    els.eventForm.reset();
+    if (ev) {
+      els.fRow.value = ev._row;
+      els.fSeq.value = ev.seq;
+      els.fStartDate.value = ev.startDate || '';
+      els.fStartTime.value = ev.startTime || '';
+      els.fEndDate.value = ev.endDate || '';
+      els.fEndTime.value = ev.endTime || '';
+      els.fTitle.value = ev.title || '';
+      els.fLocation.value = ev.location || '';
+      els.fOrg.value = ev.org || '';
+      els.fAudience.value = ev.audience || '';
+      els.fManager.value = ev.manager || '';
+      els.fNote.value = ev.note || '';
+      document.querySelector('input[name="fVisibility"][value="' + (ev.visibility === '비공개' ? '비공개' : '공개') + '"]').checked = true;
+      if (ev.color) {
+        els.fColorDefault.checked = false;
+        els.fColor.disabled = false;
+        els.fColor.value = ev.color;
+      } else {
+        els.fColorDefault.checked = true;
+        els.fColor.disabled = true;
+        els.fColor.value = APP_CONFIG.getOrgColor(ev.org);
+      }
+      els.eventFormTitle.textContent = '✏️ 일정 수정';
+      els.eventFormSubmitBtn.textContent = '수정 저장';
+    } else {
+      els.fRow.value = '';
+      els.fSeq.value = '';
+      els.fColor.disabled = true;
+      els.eventFormTitle.textContent = '➕ 일정 등록';
+      els.eventFormSubmitBtn.textContent = '등록';
+    }
+    els.eventFormModal.classList.remove('hidden');
+  }
+
+  async function onSubmitEventForm_(e) {
+    e.preventDefault();
+    if (!els.fStartDate.value || !els.fTitle.value.trim() || !els.fOrg.value.trim()) {
+      toast_('시작일 / 행사명 / 주관은 필수입니다.', true);
+      return;
+    }
+    if (els.fEndDate.value && els.fEndDate.value < els.fStartDate.value) {
+      toast_('종료일은 시작일보다 빠를 수 없습니다.', true);
+      return;
+    }
+    if (!state.privatePassword) {
+      toast_('비밀번호 확인이 필요합니다.', true);
+      return;
+    }
+    const event = {
+      startDate: els.fStartDate.value,
+      startTime: els.fStartTime.value || '',
+      endDate: els.fEndDate.value || '',
+      endTime: els.fEndTime.value || '',
+      title: els.fTitle.value.trim(),
+      location: els.fLocation.value.trim(),
+      audience: els.fAudience.value.trim(),
+      org: els.fOrg.value.trim(),
+      manager: els.fManager.value.trim(),
+      visibility: document.querySelector('input[name="fVisibility"]:checked').value,
+      note: els.fNote.value.trim(),
+      color: els.fColorDefault.checked ? '' : els.fColor.value
+    };
+
+    showLoading_(true);
+    try {
+      if (els.fRow.value) {
+        event._row = Number(els.fRow.value);
+        event.seq = els.fSeq.value;
+        await Api.updateEvent(state.privatePassword, event);
+        toast_('일정을 수정했습니다.');
+      } else {
+        await Api.createEvent(state.privatePassword, event);
+        toast_('일정을 등록했습니다.');
+      }
+      closeModal_(els.eventFormModal);
+      await reloadEvents_();
+    } catch (err) {
+      toast_(err.message, true);
+    } finally {
+      showLoading_(false);
+    }
+  }
+
+  async function onDeleteEvent_(ev) {
+    if (!confirm('"' + ev.title + '" 일정을 삭제할까요?')) return;
+    showLoading_(true);
+    try {
+      await Api.deleteEvent(state.privatePassword, ev._row);
+      toast_('일정을 삭제했습니다.');
+      closeModal_(els.detailModal);
+      await reloadEvents_();
+    } catch (err) {
+      toast_(err.message, true);
+    } finally {
+      showLoading_(false);
+    }
+  }
+
+  async function reloadEvents_() {
+    try {
+      state.events = await Api.list();
+    } catch (err) {
+      toast_(err.message, true);
+      return;
+    }
+    buildOrgFilters_();
+    render_();
   }
 
   function showLoading_(show) { els.loadingOverlay.classList.toggle('hidden', !show); }
@@ -320,13 +566,6 @@
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return y + '-' + m + '-' + day;
-  }
-  function hexToRgba_(hex, alpha) {
-    const h = hex.replace('#', '');
-    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-    const bigint = parseInt(full, 16);
-    const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255;
-    return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
   }
   function escapeHtml_(str) {
     return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
