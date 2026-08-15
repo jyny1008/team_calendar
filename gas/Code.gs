@@ -193,8 +193,13 @@ function parseDateOnly_(cellValue) {
 function parseTimeOnly_(cellValue) {
   if (!cellValue) return '';
   if (cellValue instanceof Date) {
-    const h = String(cellValue.getHours()).padStart(2, '0');
-    const m = String(cellValue.getMinutes()).padStart(2, '0');
+    // 시간만 입력된 셀은 구글시트 내부적으로 1899-12-30을 기준일로 저장한다.
+    // 그 시절 서울의 표준시(지방평균시)는 UTC+8:27:52로, 지금의 UTC+9와 달라서
+    // getHours()/getMinutes()(스크립트 타임존 기준 로컬 변환)를 쓰면 그 차이만큼
+    // 시각이 밀려 보인다(예: 11:00 입력 → 19:27로 표시). 셀에 저장된 실제 시:분은
+    // UTC 값 그대로이므로 UTC 게터로 읽어야 한다.
+    const h = String(cellValue.getUTCHours()).padStart(2, '0');
+    const m = String(cellValue.getUTCMinutes()).padStart(2, '0');
     return h + ':' + m;
   }
   const s = String(cellValue).trim();
