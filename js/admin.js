@@ -40,7 +40,9 @@
     els.eventForm = document.getElementById('eventForm');
     els.eventRow = document.getElementById('eventRow');
     els.fStartDate = document.getElementById('fStartDate');
+    els.fStartTime = document.getElementById('fStartTime');
     els.fEndDate = document.getElementById('fEndDate');
+    els.fEndTime = document.getElementById('fEndTime');
     els.fTitle = document.getElementById('fTitle');
     els.fLocation = document.getElementById('fLocation');
     els.fOrg = document.getElementById('fOrg');
@@ -168,7 +170,7 @@
 
     list.forEach((ev) => {
       const tr = document.createElement('tr');
-      const period = ev.endDate && ev.endDate !== ev.startDate ? ev.startDate + ' ~ ' + ev.endDate : ev.startDate;
+      const period = formatPeriod_(ev);
       const color = ev.color || APP_CONFIG.getOrgColor(ev.org);
       tr.innerHTML =
         '<td>' + escapeHtml_(period) + '</td>' +
@@ -198,7 +200,9 @@
     state.editingSeq = ev.seq;
     els.eventRow.value = ev._row;
     els.fStartDate.value = ev.startDate || '';
+    els.fStartTime.value = ev.startTime || '';
     els.fEndDate.value = ev.endDate || '';
+    els.fEndTime.value = ev.endTime || '';
     els.fTitle.value = ev.title || '';
     els.fLocation.value = ev.location || '';
     els.fOrg.value = ev.org || '';
@@ -242,7 +246,9 @@
     }
     const event = {
       startDate: els.fStartDate.value,
+      startTime: els.fStartTime.value || '',
       endDate: els.fEndDate.value || '',
+      endTime: els.fEndTime.value || '',
       title: els.fTitle.value.trim(),
       location: els.fLocation.value.trim(),
       audience: els.fAudience.value.trim(),
@@ -321,6 +327,17 @@
     const p = s.split('-').map(Number);
     if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return null;
     return new Date(p[0], p[1] - 1, p[2]);
+  }
+
+  function formatPeriod_(ev) {
+    const sameDay = !ev.endDate || ev.endDate === ev.startDate;
+    let text = ev.startDate + (ev.startTime ? ' ' + ev.startTime : '');
+    if (sameDay) {
+      if (ev.endTime) text += ' ~ ' + ev.endTime;
+    } else {
+      text += ' ~ ' + ev.endDate + (ev.endTime ? ' ' + ev.endTime : '');
+    }
+    return text;
   }
 
   function showLoading_(show) { els.loadingOverlay.classList.toggle('hidden', !show); }

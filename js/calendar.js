@@ -274,9 +274,7 @@
 
   function openDetail_(ev) {
     els.detailTitle.textContent = ev.title;
-    const period = ev.endDate && ev.endDate !== ev.startDate
-      ? ev.startDate + ' ~ ' + ev.endDate
-      : ev.startDate;
+    const period = formatPeriod_(ev);
     const visTag = ev.visibility === '비공개'
       ? '<span class="tag visibility-private">비공개</span>'
       : '<span class="tag visibility-public">공개</span>';
@@ -306,6 +304,16 @@
     const parts = s.split('-').map(Number);
     if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
     return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  function formatPeriod_(ev) {
+    const sameDay = !ev.endDate || ev.endDate === ev.startDate;
+    let text = ev.startDate + (ev.startTime ? ' ' + ev.startTime : '');
+    if (sameDay) {
+      if (ev.endTime) text += ' ~ ' + ev.endTime;
+    } else {
+      text += ' ~ ' + ev.endDate + (ev.endTime ? ' ' + ev.endTime : '');
+    }
+    return text;
   }
   function formatDate_(d) {
     const y = d.getFullYear();

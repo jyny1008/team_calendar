@@ -5,15 +5,30 @@
  * 그대로 붙여넣고 "웹 앱으로 배포"하면 됩니다.
  *
  * 원본 시트(첫 번째 탭)의 컬럼 구조를 그대로 사용합니다:
- *  A:연번 B:시작일 C:종료일 D:행사명 E:장소 F:참가대상 G:주관 H:담당자 I:공개여부 J:비고 K:색상(자동추가)
+ *  A:연번 B:시작일 C:시작시간 D:종료일 E:종료시간 F:행사명 G:장소 H:참가대상 I:주관 J:담당자 K:공개여부 L:비고 M:색상(자동추가)
+ * 컬럼을 더 추가/삭제할 경우 아래 COL_* 상수만 맞춰서 고치면 됩니다.
  *
  * 비밀번호/설정은 별도 "Config" 탭에 SHA-256 해시로만 저장합니다.
  */
 
 const MAIN_SHEET_INDEX = 0;
 const CONFIG_SHEET_NAME = 'Config';
-const DATA_COLUMNS = 11; // A~K
 const DEFAULT_PASSWORD = '2854';
+
+const COL_SEQ = 1;
+const COL_START_DATE = 2;
+const COL_START_TIME = 3;
+const COL_END_DATE = 4;
+const COL_END_TIME = 5;
+const COL_TITLE = 6;
+const COL_LOCATION = 7;
+const COL_AUDIENCE = 8;
+const COL_ORG = 9;
+const COL_MANAGER = 10;
+const COL_VISIBILITY = 11;
+const COL_NOTE = 12;
+const COL_COLOR = 13;
+const DATA_COLUMNS = 13; // A~M
 
 /**
  * 배포 전에 딱 한 번, Apps Script 편집기 상단의 함수 선택 드롭박스에서
@@ -37,8 +52,8 @@ function getMainSheet_() {
 
 function ensureColorColumn_(sheet) {
   const header = sheet.getRange(1, 1, 1, DATA_COLUMNS).getValues()[0];
-  if (header[10] !== '색상') {
-    sheet.getRange(1, 11).setValue('색상');
+  if (header[COL_COLOR - 1] !== '색상') {
+    sheet.getRange(1, COL_COLOR).setValue('색상');
   }
 }
 
@@ -99,7 +114,24 @@ function formatDateWithDay_(dateStr) {
 
 function parseDateOnly_(cellValue) {
   if (!cellValue) return '';
+  if (cellValue instanceof Date) {
+    const y = cellValue.getFullYear();
+    const m = String(cellValue.getMonth() + 1).padStart(2, '0');
+    const d = String(cellValue.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
   const m = String(cellValue).match(/(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : '';
+}
+
+function parseTimeOnly_(cellValue) {
+  if (!cellValue) return '';
+  if (cellValue instanceof Date) {
+    const h = String(cellValue.getHours()).padStart(2, '0');
+    const m = String(cellValue.getMinutes()).padStart(2, '0');
+    return h + ':' + m;
+  }
+  const m = String(cellValue).match(/(\d{1,2}:\d{2})/);
   return m ? m[1] : '';
 }
 
@@ -122,21 +154,23 @@ function listEvents_() {
   const values = sheet.getRange(2, 1, lastRow - 1, DATA_COLUMNS).getValues();
   const events = [];
   values.forEach(function (row, idx) {
-    const title = row[3];
+    const title = row[COL_TITLE - 1];
     if (!title) return; // 빈 행 제외
     events.push({
       _row: idx + 2,
-      seq: row[0],
-      startDate: parseDateOnly_(row[1]),
-      endDate: parseDateOnly_(row[2]),
+      seq: row[COL_SEQ - 1],
+      startDate: parseDateOnly_(row[COL_START_DATE - 1]),
+      startTime: parseTimeOnly_(row[COL_START_TIME - 1]),
+      endDate: parseDateOnly_(row[COL_END_DATE - 1]),
+      endTime: parseTimeOnly_(row[COL_END_TIME - 1]),
       title: title,
-      location: row[4],
-      audience: row[5],
-      org: row[6],
-      manager: row[7],
-      visibility: row[8] || '공개',
-      note: row[9],
-      color: row[10] || ''
+      location: row[COL_LOCATION - 1],
+      audience: row[COL_AUDIENCE - 1],
+      org: row[COL_ORG - 1],
+      manager: row[COL_MANAGER - 1],
+      visibility: row[COL_VISIBILITY - 1] || '공개',
+      note: row[COL_NOTE - 1],
+      color: row[COL_COLOR - 1] || ''
     });
   });
   return events;
@@ -193,7 +227,7 @@ function createEvent_(ev) {
   const lastRow = sheet.getLastRow();
   let targetRow = -1;
   if (lastRow >= 2) {
-    const nameCol = sheet.getRange(2, 4, lastRow - 1, 1).getValues();
+    const nameCol = sheet.getRange(2, COL_TITLE, lastRow - 1, 1).getValues();
     for (let i = 0; i < nameCol.length; i++) {
       if (!nameCol[i][0]) { targetRow = i + 2; break; }
     }
@@ -202,7 +236,7 @@ function createEvent_(ev) {
 
   let maxSeq = 0;
   if (lastRow >= 2) {
-    const seqCol = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const seqCol = sheet.getRange(2, COL_SEQ, lastRow - 1, 1).getValues();
     seqCol.forEach(function (r) {
       const n = Number(r[0]);
       if (!isNaN(n) && n > maxSeq) maxSeq = n;
@@ -224,7 +258,7 @@ function writeRow_(sheet, row, seq, ev) {
   const start = ev.startDate ? formatDateWithDay_(ev.startDate) : '';
   const end = ev.endDate ? formatDateWithDay_(ev.endDate) : '';
   sheet.getRange(row, 1, 1, DATA_COLUMNS).setValues([[
-    seq, start, end, ev.title || '', ev.location || '', ev.audience || '',
+    seq, start, ev.startTime || '', end, ev.endTime || '', ev.title || '', ev.location || '', ev.audience || '',
     ev.org || '', ev.manager || '', ev.visibility || '공개', ev.note || '', ev.color || ''
   ]]);
 }
