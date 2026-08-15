@@ -197,7 +197,9 @@ function parseTimeOnly_(cellValue) {
     const m = String(cellValue.getMinutes()).padStart(2, '0');
     return h + ':' + m;
   }
-  const m = String(cellValue).match(/(\d{1,2}:\d{2})/);
+  const s = String(cellValue).trim();
+  if (!s) return '';
+  const m = s.match(/(\d{1,2}:\d{2})/);
   return m ? m[1] : '';
 }
 

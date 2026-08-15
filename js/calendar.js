@@ -521,12 +521,16 @@
   function openDetail_(ev) {
     currentDetailEvent = ev;
     els.detailTitle.textContent = ev.title;
-    const period = formatPeriod_(ev);
+    const periodDate = formatPeriodDateOnly_(ev);
+    const timeRows =
+      (ev.startTime ? '<div class="detail-row"><div class="k">시작시간</div><div class="v">' + escapeHtml_(ev.startTime) + '</div></div>' : '') +
+      (ev.endTime ? '<div class="detail-row"><div class="k">종료시간</div><div class="v">' + escapeHtml_(ev.endTime) + '</div></div>' : '');
     const visTag = ev.visibility === '비공개'
       ? '<span class="tag visibility-private">비공개</span>'
       : '<span class="tag visibility-public">공개</span>';
     els.detailBody.innerHTML =
-      '<div class="detail-row"><div class="k">기간</div><div class="v">' + escapeHtml_(period) + '</div></div>' +
+      '<div class="detail-row"><div class="k">기간</div><div class="v">' + escapeHtml_(periodDate) + '</div></div>' +
+      timeRows +
       '<div class="detail-row"><div class="k">주관</div><div class="v">' + escapeHtml_(ev.org || '-') + '</div></div>' +
       '<div class="detail-row"><div class="k">장소</div><div class="v">' + escapeHtml_(ev.location || '-') + '</div></div>' +
       '<div class="detail-row"><div class="k">참가대상</div><div class="v">' + escapeHtml_(ev.audience || '-') + '</div></div>' +
@@ -684,6 +688,11 @@
       text += ' ~ ' + ev.endDate + (ev.endTime ? ' ' + ev.endTime : '');
     }
     return text;
+  }
+  // 상세보기 모달의 "기간" 행은 날짜만 표시하고, 시작/종료 시간은 있을 때만 별도 행으로 보여준다.
+  function formatPeriodDateOnly_(ev) {
+    const sameDay = !ev.endDate || ev.endDate === ev.startDate;
+    return sameDay ? ev.startDate : ev.startDate + ' ~ ' + ev.endDate;
   }
   function formatDate_(d) {
     const y = d.getFullYear();
