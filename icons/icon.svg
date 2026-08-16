@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#FF3B30"/>
+  <rect x="192" y="124" width="20" height="48" rx="10" fill="#ffffff"/>
+  <rect x="300" y="124" width="20" height="48" rx="10" fill="#ffffff"/>
+  <rect x="136" y="150" width="240" height="212" rx="22" fill="#ffffff"/>
+  <rect x="136" y="150" width="240" height="56" rx="22" fill="#C81E1E"/>
+  <rect x="136" y="184" width="240" height="22" fill="#C81E1E"/>
+  <text x="256" y="187" text-anchor="middle" dominant-baseline="middle" font-family="'Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-weight="700" font-size="34" fill="#ffffff">중등</text>
+  <rect x="187" y="224" width="34" height="34" rx="8" fill="#FFD9D6"/>
+  <rect x="239" y="224" width="34" height="34" rx="8" fill="#FFD9D6"/>
+  <rect x="291" y="224" width="34" height="34" rx="8" fill="#FFD9D6"/>
+  <rect x="187" y="276" width="34" height="34" rx="8" fill="#FFD9D6"/>
+  <rect x="239" y="276" width="34" height="34" rx="8" fill="#FF3B30"/>
+  <rect x="291" y="276" width="34" height="34" rx="8" fill="#FFD9D6"/>
+</svg>

@@ -143,10 +143,11 @@ const ExportTools = (function () {
         주관: ev.org,
         담당자: ev.manager,
         공개여부: ev.visibility,
+        내용: ev.content,
         비고: ev.note
       }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [{ wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 24 }];
+    ws['!cols'] = [{ wch: 6 }, { wch: 14 }, { wch: 14 }, { wch: 30 }, { wch: 16 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 24 }, { wch: 24 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, month + '월');
     XLSX.writeFile(wb, '중등교육캘린더_' + year + '년' + month + '월.xlsx');
@@ -182,6 +183,7 @@ const ExportTools = (function () {
         '<div><b>참가대상</b> ' + escapeHtml_(ev.audience || '-') + '</div>' +
         '<div><b>담당자</b> ' + escapeHtml_(ev.manager || '-') + '</div>' +
         '<div><b>공개여부</b> ' + escapeHtml_(ev.visibility || '-') + '</div>' +
+        '<div><b>내용</b> ' + escapeHtml_(ev.content || '-') + '</div>' +
         '<div><b>비고</b> ' + escapeHtml_(ev.note || '-') + '</div>' +
         '</div></details>';
     };

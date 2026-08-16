@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>중등교육 캘린더</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#FF3B30">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="중등교육 캘린더">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,7 +19,8 @@
     <header class="app-header">
       <div class="app-title"><span id="siteTitleText">중등교육 캘린더</span> <span class="badge" id="siteYearBadge">2026</span></div>
       <div class="header-actions no-print">
-        <a class="btn ghost" href="admin.html">관리자페이지</a>
+        <button type="button" class="btn ghost" id="installBtn">📌 바로가기 만들기</button>
+        <a class="btn ghost" href="admin.html">관리자</a>
       </div>
     </header>
 
@@ -174,6 +183,10 @@
             </div>
           </div>
           <div class="field full">
+            <label for="fContent">내용</label>
+            <textarea id="fContent"></textarea>
+          </div>
+          <div class="field full">
             <label for="fNote">비고</label>
             <textarea id="fNote"></textarea>
           </div>
@@ -186,6 +199,20 @@
     </div>
   </div>
 
+  <!-- 바로가기 설치 안내 모달 -->
+  <div class="modal-overlay hidden no-print" id="installModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="installModalTitle">바로가기 만들기</div>
+        <button class="modal-close" data-close-modal>✕</button>
+      </div>
+      <div id="installModalBody" style="font-size:13.5px;line-height:1.7;color:var(--text);"></div>
+      <div class="form-actions">
+        <button type="button" class="btn primary" data-close-modal>확인</button>
+      </div>
+    </div>
+  </div>
+
   <div class="loading-overlay hidden" id="loadingOverlay">불러오는 중...</div>
   <div class="toast" id="toast"></div>
 
@@ -194,5 +221,6 @@
   <script src="js/mock-data.js"></script>
   <script src="js/api.js"></script>
   <script src="js/calendar.js"></script>
+  <script src="js/pwa.js"></script>
 </body>
 </html>

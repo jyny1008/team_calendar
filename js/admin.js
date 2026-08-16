@@ -59,6 +59,7 @@
     els.fManager = document.getElementById('fManager');
     els.fColorDefault = document.getElementById('fColorDefault');
     els.fColor = document.getElementById('fColor');
+    els.fContent = document.getElementById('fContent');
     els.fNote = document.getElementById('fNote');
     els.formTitle = document.getElementById('formTitle');
     els.submitBtn = document.getElementById('submitBtn');
@@ -341,6 +342,7 @@
     els.fOrg.value = ev.org || '';
     els.fAudience.value = ev.audience || '';
     els.fManager.value = ev.manager || '';
+    els.fContent.value = ev.content || '';
     els.fNote.value = ev.note || '';
     document.querySelector('input[name="fVisibility"][value="' + (ev.visibility === '비공개' ? '비공개' : '공개') + '"]').checked = true;
     if (ev.color) {
@@ -388,6 +390,7 @@
       org: els.fOrg.value.trim(),
       manager: els.fManager.value.trim(),
       visibility: document.querySelector('input[name="fVisibility"]:checked').value,
+      content: els.fContent.value.trim(),
       note: els.fNote.value.trim(),
       color: els.fColorDefault.checked ? '' : els.fColor.value
     };

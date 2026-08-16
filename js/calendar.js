@@ -98,6 +98,7 @@
     els.fManager = document.getElementById('fManager');
     els.fColorDefault = document.getElementById('fColorDefault');
     els.fColor = document.getElementById('fColor');
+    els.fContent = document.getElementById('fContent');
     els.fNote = document.getElementById('fNote');
 
     els.loadingOverlay = document.getElementById('loadingOverlay');
@@ -536,6 +537,7 @@
       '<div class="detail-row"><div class="k">참가대상</div><div class="v">' + escapeHtml_(ev.audience || '-') + '</div></div>' +
       '<div class="detail-row"><div class="k">담당자</div><div class="v">' + escapeHtml_(ev.manager || '-') + '</div></div>' +
       '<div class="detail-row"><div class="k">공개여부</div><div class="v">' + visTag + '</div></div>' +
+      '<div class="detail-row"><div class="k">내용</div><div class="v">' + escapeHtml_(ev.content || '-') + '</div></div>' +
       '<div class="detail-row"><div class="k">비고</div><div class="v">' + escapeHtml_(ev.note || '-') + '</div></div>';
     els.detailModal.classList.remove('hidden');
   }
@@ -554,6 +556,7 @@
       els.fOrg.value = ev.org || '';
       els.fAudience.value = ev.audience || '';
       els.fManager.value = ev.manager || '';
+      els.fContent.value = ev.content || '';
       els.fNote.value = ev.note || '';
       document.querySelector('input[name="fVisibility"][value="' + (ev.visibility === '비공개' ? '비공개' : '공개') + '"]').checked = true;
       if (ev.color) {
@@ -602,6 +605,7 @@
       org: els.fOrg.value.trim(),
       manager: els.fManager.value.trim(),
       visibility: document.querySelector('input[name="fVisibility"]:checked').value,
+      content: els.fContent.value.trim(),
       note: els.fNote.value.trim(),
       color: els.fColorDefault.checked ? '' : els.fColor.value
     };

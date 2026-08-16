@@ -5,7 +5,7 @@
  * 그대로 붙여넣고 "웹 앱으로 배포"하면 됩니다.
  *
  * 원본 시트(첫 번째 탭)의 컬럼 구조를 그대로 사용합니다:
- *  A:연번 B:시작일 C:시작시간 D:종료일 E:종료시간 F:행사명 G:장소 H:참가대상 I:주관 J:담당자 K:공개여부 L:비고 M:색상(자동추가)
+ *  A:연번 B:시작일 C:시작시간 D:종료일 E:종료시간 F:행사명 G:장소 H:참가대상 I:주관 J:담당자 K:공개여부 L:내용 M:비고 N:색상(자동추가)
  * 컬럼을 더 추가/삭제할 경우 아래 COL_* 상수만 맞춰서 고치면 됩니다.
  *
  * 비밀번호/설정은 별도 "Config" 탭에 SHA-256 해시로만 저장합니다.
@@ -41,9 +41,10 @@ const COL_AUDIENCE = 8;
 const COL_ORG = 9;
 const COL_MANAGER = 10;
 const COL_VISIBILITY = 11;
-const COL_NOTE = 12;
-const COL_COLOR = 13;
-const DATA_COLUMNS = 13; // A~M
+const COL_CONTENT = 12;
+const COL_NOTE = 13;
+const COL_COLOR = 14;
+const DATA_COLUMNS = 14; // A~N
 
 /**
  * 배포 전에 딱 한 번, Apps Script 편집기 상단의 함수 선택 드롭박스에서
@@ -242,6 +243,7 @@ function listEvents_() {
       org: row[COL_ORG - 1],
       manager: row[COL_MANAGER - 1],
       visibility: row[COL_VISIBILITY - 1] || '공개',
+      content: row[COL_CONTENT - 1],
       note: row[COL_NOTE - 1],
       color: row[COL_COLOR - 1] || ''
     });
@@ -374,7 +376,7 @@ function writeRow_(sheet, row, seq, ev) {
   const end = ev.endDate ? formatDateWithDay_(ev.endDate) : '';
   sheet.getRange(row, 1, 1, DATA_COLUMNS).setValues([[
     seq, start, ev.startTime || '', end, ev.endTime || '', ev.title || '', ev.location || '', ev.audience || '',
-    ev.org || '', ev.manager || '', ev.visibility || '공개', ev.note || '', ev.color || ''
+    ev.org || '', ev.manager || '', ev.visibility || '공개', ev.content || '', ev.note || '', ev.color || ''
   ]]);
 }
 
