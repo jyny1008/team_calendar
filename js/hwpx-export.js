@@ -102,15 +102,29 @@ const HwpxExport = (function () {
 
     tbl.setAttribute('rowCnt', String(2 + Math.max(events.length, 1)));
 
-    const xmlOut = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>' + new XMLSerializer().serializeToString(doc);
+    // DOMParser로 읽은 XML 선언(인코딩/standalone)이 있는 문서를 XMLSerializer로 다시 직렬화하면
+    // 브라우저가 자체적으로 "<?xml ...?>" 선언을 이미 앞에 붙여서 내보낸다. 여기서 선언을 한 번 더
+    // 붙이면 "<?xml ...?><?xml ...?>..." 형태로 중복돼 올바르지 않은 XML이 되어(두 번째 "<?xml"이
+    // 문서 맨 앞이 아닌 위치의 처리명령으로 취급되어 파싱 오류) 한글에서 파일을 열 때 오류가 난다.
+    const xmlOut = new XMLSerializer().serializeToString(doc);
     zip.file('Contents/section0.xml', xmlOut, { compression: 'DEFLATE' });
     zip.file('mimetype', 'application/hwp+zip', { compression: 'STORE' });
-    // zip.file()로 기존 경로를 덮어쓸 때 JSZip이 "Contents/" 폴더 항목을 자동으로 끼워 넣는데,
-    // 원본 hwpx에는 폴더 항목이 전혀 없어서(한글이 이 구조를 엄격히 따짐) 반드시 제거해야 한다.
-    // 이 항목이 남아 있으면 한글에서 파일을 열었을 때 내용 없이 빈 문서로 뜬다(실제로 재현 확인함).
+    // JSZip은 loadAsync()로 읽어들인, 손대지 않은 기존 항목의 원래 압축방식(STORE/DEFLATE)을
+    // 기억하지 못하고 generateAsync()에 넘긴 전역 compression 옵션(DEFLATE)을 모든 항목에 그대로
+    // 적용해버린다. 원본 템플릿에서 STORE(비압축)로 저장돼 있던 항목까지 DEFLATE로 바뀌는 것을
+    // 막기 위해, 내용은 그대로 둔 채 압축방식만 원본과 동일하게 명시적으로 되돌린다.
+    for (const name of ['version.xml', 'Preview/PrvImage.png']) {
+      const content = await zip.file(name).async('uint8array');
+      zip.file(name, content, { compression: 'STORE' });
+    }
+    // zip.file()로 기존 경로를 덮어쓸 때 JSZip이 상위 폴더 항목("Contents/", "Preview/")을
+    // 자동으로 끼워 넣는데, 원본 hwpx에는 폴더 항목이 전혀 없어서(한글이 이 구조를 엄격히 따짐)
+    // 반드시 제거해야 한다. 이 항목이 남아 있으면 한글에서 파일을 열었을 때 내용 없이 빈 문서로
+    // 뜨거나 파일이 손상된 것으로 인식된다(실제로 재현 확인함).
     // zip.remove('Contents/')는 폴더 하위 파일까지 재귀적으로 지워버리므로 쓰면 안 되고,
-    // 내부 files 맵에서 그 폴더 항목 하나만 직접 제거한다.
+    // 내부 files 맵에서 그 폴더 항목만 직접 제거한다.
     delete zip.files['Contents/'];
+    delete zip.files['Preview/'];
 
     return zip.generateAsync({ type: 'blob', mimeType: 'application/hwp+zip', compression: 'DEFLATE' });
   }
