@@ -46,6 +46,9 @@
     els.exportExcelBtn = document.getElementById('exportExcelBtn');
     els.exportOfflineBtn = document.getElementById('exportOfflineBtn');
 
+    els.hwpxWeekDate = document.getElementById('hwpxWeekDate');
+    els.exportHwpxBtn = document.getElementById('exportHwpxBtn');
+
     els.eventForm = document.getElementById('eventForm');
     els.eventRow = document.getElementById('eventRow');
     els.fStartDate = document.getElementById('fStartDate');
@@ -109,6 +112,9 @@
     els.tableExcelBtn.addEventListener('click', () => {
       ExportTools.exportExcel(state.viewYear, state.viewMonth, filterEventsForMonth_(state.viewYear, state.viewMonth, state.events));
     });
+
+    els.hwpxWeekDate.value = formatDate_(new Date());
+    els.exportHwpxBtn.addEventListener('click', onExportHwpx_);
 
     els.fColorDefault.addEventListener('change', () => {
       els.fColor.disabled = els.fColorDefault.checked;
@@ -463,6 +469,36 @@
     const p = s.split('-').map(Number);
     if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return null;
     return new Date(p[0], p[1] - 1, p[2]);
+  }
+
+  function formatDate_(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  async function onExportHwpx_() {
+    const dateVal = els.hwpxWeekDate.value;
+    if (!dateVal) {
+      toast_('기준일을 선택하세요.', true);
+      return;
+    }
+    const anchor = parseDate_(dateVal);
+    const weekStart = new Date(anchor);
+    weekStart.setDate(anchor.getDate() - anchor.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    showLoading_(true);
+    try {
+      await HwpxExport.downloadWeekly(weekStart, weekEnd, state.events);
+      toast_('주간일정 hwpx 파일을 생성했습니다.');
+    } catch (err) {
+      toast_(err.message, true);
+    } finally {
+      showLoading_(false);
+    }
   }
 
   function formatPeriod_(ev) {
