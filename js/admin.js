@@ -485,8 +485,10 @@
       return;
     }
     const anchor = parseDate_(dateVal);
+    // 월요일 시작 ~ 일요일 종료 주간으로 계산한다(getDay(): 일=0~토=6).
+    const mondayOffset = (anchor.getDay() + 6) % 7;
     const weekStart = new Date(anchor);
-    weekStart.setDate(anchor.getDate() - anchor.getDay());
+    weekStart.setDate(anchor.getDate() - mondayOffset);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
 
