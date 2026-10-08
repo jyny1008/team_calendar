@@ -22,22 +22,65 @@
   let currentDetailEvent = null;
   let pendingAfterAuth = null;
 
+  const CACHE_KEY_ = 'calendar_dataCache_v1';
+
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
     cacheEls_();
     bindStaticEvents_();
+
+    // 이전 방문에서 저장해둔 데이터가 있으면 네트워크 응답을 기다리지 않고 먼저 그려서
+    // 체감 로딩을 없애고, 최신 데이터는 화면 뒤에서 조용히 받아와 반영한다(stale-while-revalidate).
+    const cached = loadCache_();
+    if (cached) {
+      applyFetchResult_(cached);
+      finishInit_();
+      fetchAndApply_().then(finishInit_).catch(() => {});
+      return;
+    }
+
     showLoading_(true);
     try {
-      const res = await Api.list();
-      state.events = res.events;
-      APP_CONFIG.applyOrgConfig(res.orgConfig);
-      APP_CONFIG.applySiteConfig(res.siteConfig);
+      await fetchAndApply_();
     } catch (err) {
       toast_(err.message, true);
       state.events = [];
     }
     showLoading_(false);
+    finishInit_();
+  }
+
+  function loadCache_() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY_);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function saveCache_(res) {
+    try {
+      localStorage.setItem(CACHE_KEY_, JSON.stringify({ events: res.events, orgConfig: res.orgConfig, siteConfig: res.siteConfig }));
+    } catch (err) {
+      // 저장 공간 초과 등은 캐시를 못 쓸 뿐이므로 무시한다.
+    }
+  }
+
+  function applyFetchResult_(res) {
+    state.events = res.events;
+    APP_CONFIG.applyOrgConfig(res.orgConfig);
+    APP_CONFIG.applySiteConfig(res.siteConfig);
+  }
+
+  async function fetchAndApply_() {
+    const res = await Api.list();
+    applyFetchResult_(res);
+    saveCache_(res);
+  }
+
+  function finishInit_() {
     renderSiteMeta_();
     populateOrgDatalist_();
     buildOrgFilters_();
@@ -647,10 +690,7 @@
 
   async function reloadEvents_() {
     try {
-      const res = await Api.list();
-      state.events = res.events;
-      APP_CONFIG.applyOrgConfig(res.orgConfig);
-      APP_CONFIG.applySiteConfig(res.siteConfig);
+      await fetchAndApply_();
     } catch (err) {
       toast_(err.message, true);
       return;

@@ -30,6 +30,11 @@ const SITE_CONFIG_KEY = 'siteConfig';
 const DEFAULT_SITE_TITLE = '중등교육 캘린더';
 const DEFAULT_SITE_YEAR = '2026';
 
+// list 응답(일정+주관설정+사이트설정)을 캐싱해 매 요청마다 시트를 다시 읽지 않게 한다.
+// 일정 등록/수정/삭제, 주관색상/사이트설정 변경 시 invalidateListCache_()로 즉시 무효화한다.
+const LIST_CACHE_KEY = 'listResponse_v1';
+const LIST_CACHE_TTL_SECONDS = 120;
+
 const COL_SEQ = 1;
 const COL_START_DATE = 2;
 const COL_START_TIME = 3;
@@ -213,12 +218,27 @@ function doGet(e) {
   const action = e.parameter.action;
   try {
     if (action === 'list') {
-      return jsonOutput_({ ok: true, events: listEvents_(), orgConfig: getOrgConfig_(), siteConfig: getSiteConfig_() });
+      return listResponse_();
     }
     return jsonOutput_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return jsonOutput_({ ok: false, error: String(err) });
   }
+}
+
+function listResponse_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(LIST_CACHE_KEY);
+  if (cached) {
+    return ContentService.createTextOutput(cached).setMimeType(ContentService.MimeType.JSON);
+  }
+  const payload = JSON.stringify({ ok: true, events: listEvents_(), orgConfig: getOrgConfig_(), siteConfig: getSiteConfig_() });
+  cache.put(LIST_CACHE_KEY, payload, LIST_CACHE_TTL_SECONDS);
+  return ContentService.createTextOutput(payload).setMimeType(ContentService.MimeType.JSON);
+}
+
+function invalidateListCache_() {
+  CacheService.getScriptCache().remove(LIST_CACHE_KEY);
 }
 
 function listEvents_() {
@@ -273,16 +293,20 @@ function doPost(e) {
       }
       case 'create': {
         if (!requireEditAccess_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
-        return jsonOutput_({ ok: true, event: createEvent_(body.event) });
+        const created = createEvent_(body.event);
+        invalidateListCache_();
+        return jsonOutput_({ ok: true, event: created });
       }
       case 'update': {
         if (!requireEditAccess_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
         updateEvent_(body.event);
+        invalidateListCache_();
         return jsonOutput_({ ok: true });
       }
       case 'delete': {
         if (!requireEditAccess_(body.adminPassword)) return jsonOutput_({ ok: false, error: 'unauthorized' });
         deleteEvent_(body.row);
+        invalidateListCache_();
         return jsonOutput_({ ok: true });
       }
       case 'updateOrgColor': {
@@ -290,6 +314,7 @@ function doPost(e) {
         const cfg = getOrgConfig_();
         cfg.colors[body.org] = body.color;
         saveOrgConfig_(cfg);
+        invalidateListCache_();
         return jsonOutput_({ ok: true, orgConfig: cfg });
       }
       case 'updatePrivateColor': {
@@ -297,6 +322,7 @@ function doPost(e) {
         const cfg = getOrgConfig_();
         cfg.privateColor = body.color;
         saveOrgConfig_(cfg);
+        invalidateListCache_();
         return jsonOutput_({ ok: true, orgConfig: cfg });
       }
       case 'addOrg': {
@@ -307,6 +333,7 @@ function doPost(e) {
         if (cfg.order.indexOf(name) === -1) cfg.order.push(name);
         cfg.colors[name] = body.color || DEFAULT_ORG_COLORS.__default;
         saveOrgConfig_(cfg);
+        invalidateListCache_();
         return jsonOutput_({ ok: true, orgConfig: cfg });
       }
       case 'updateSiteConfig': {
@@ -316,6 +343,7 @@ function doPost(e) {
           year: String(body.year || '').trim() || DEFAULT_SITE_YEAR
         };
         saveSiteConfig_(cfg);
+        invalidateListCache_();
         return jsonOutput_({ ok: true, siteConfig: cfg });
       }
       default:
